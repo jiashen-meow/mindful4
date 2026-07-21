@@ -21,6 +21,9 @@ struct pickerView: View {
     // Add loading states for better UX
     @State private var isFriendReportLoading = false
     @State private var isFoulReportLoading = false
+
+    // Counter written by the monitor extension, read here.
+    @State private var thresholdCount: Int = SharedStore.thresholdCount
     
     @State private var segmentInterval: DeviceActivityFilter.SegmentInterval = .daily(
         during: Calendar.current.dateInterval(of: .day, for: .now)!
@@ -47,6 +50,17 @@ struct pickerView: View {
     
     var body: some View {
         VStack {
+            // --- Battle counter ---
+            Text("⚔️ Threshold hits: \(thresholdCount)")
+                .font(.headline)
+                .padding(.top)
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    // Refresh whenever the app comes back to the foreground,
+                    // since the extension wrote to shared UserDefaults while we were away.
+                    thresholdCount = SharedStore.thresholdCount
+                }
+            
+            Divider()
             if friendSelection.categoryTokens.isEmpty && friendSelection.applicationTokens.isEmpty {
                 Button("pick your friend") {
                     showingFriendPicker = true
@@ -123,8 +137,12 @@ struct pickerView: View {
                     friendSelection = FamilyActivitySelection()
                     foulSelection = FamilyActivitySelection()
                 }
+                Button("reset count") {
+                    SharedStore.resetThresholdCount()
+                    thresholdCount = 0
+                }
                 Button("start battle!") {
-                    // Add your battle logic here
+                    startMonitoring()
                 }
                 .padding()
             }
@@ -157,6 +175,42 @@ struct pickerView: View {
                         }
                     }
             }
+        }
+    }
+
+    private func startMonitoring() {
+        let center = DeviceActivityCenter()
+        let activityName = DeviceActivityName("mindful.daily")
+
+        // Build one event per 15-minute milestone for up to 8 hours of coverage
+        // (milestone_1 = 15 min, milestone_2 = 30 min, … milestone_32 = 480 min).
+        // The threshold accumulates across the interval — no stop/restart needed.
+        let stepMinutes = 15
+        let maxMilestones = 8  // 8 × 15 min = 2 hours
+
+        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+        for i in 1...maxMilestones {
+            events[DeviceActivityEvent.Name("milestone_\(i)")] = DeviceActivityEvent(
+                applications: friendSelection.applicationTokens,
+                categories: friendSelection.categoryTokens,
+                webDomains: friendSelection.webDomainTokens,
+                threshold: DateComponents(minute: i * stepMinutes)
+            )
+        }
+
+        do {
+            try center.startMonitoring(
+                activityName,
+                during: DeviceActivitySchedule(
+                    intervalStart: DateComponents(hour: 0, minute: 0),
+                    intervalEnd: DateComponents(hour: 23, minute: 59),
+                    repeats: true   // OS resets cumulative usage at midnight automatically
+                ),
+                events: events
+            )
+            print("Monitoring started with \(maxMilestones) milestones (step: \(stepMinutes) min)")
+        } catch {
+            print("Failed to start monitoring: \(error)")
         }
     }
 }

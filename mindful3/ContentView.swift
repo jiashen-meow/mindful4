@@ -8,7 +8,6 @@
 import SwiftUI
 import DeviceActivity
 import FamilyControls
-internal import ManagedSettings
 
 extension DeviceActivityReport.Context {
     // If your app initializes a DeviceActivityReport with this context, then the system will use
@@ -20,55 +19,37 @@ extension DeviceActivityReport.Context {
 }
 
 struct ContentView: View {
-    @State private var selection = FamilyActivitySelection()
-    @State private var context: DeviceActivityReport.Context = .totalActivity
-    @State private var showingPicker = false
     @State private var authorizationStatus: AuthorizationStatus = .notDetermined
-    @State private var segmentInterval: DeviceActivityFilter.SegmentInterval = .daily(
-        during: Calendar.current.dateInterval(of: .day, for: .now)!
-    )
-    
-    private var filter: DeviceActivityFilter {
-        DeviceActivityFilter(
-            segment: segmentInterval,
-            applications: selection.applicationTokens,
-            categories: selection.categoryTokens,
-            webDomains: selection.webDomainTokens
-        )
-    }
 
     public var body: some View {
         VStack {
-            // Show authorization status
-            if authorizationStatus == .denied {
-                Text("Family Controls access denied. Please enable in Settings.")
-                    .foregroundColor(.red)
-                    .font(.caption)
-            } else if authorizationStatus == .notDetermined {
-                Text("Requesting Family Controls permission...")
-                    .foregroundColor(.orange)
-                    .font(.caption)
-            }
-            
-            if authorizationStatus == .approved {
+            switch authorizationStatus {
+            case .approved:
                 pickerView()
+            case .denied:
+                ContentUnavailableView(
+                    "Screen Time Access Required",
+                    systemImage: "lock.shield",
+                    description: Text("Please enable Family Controls in Settings → Screen Time.")
+                )
+            case .notDetermined:
+                ProgressView("Requesting permission…")
+            @unknown default:
+                EmptyView()
             }
         }
-        .onAppear {
-            // Check current authorization status
+        .task {
+            // Re-check status every time the view appears (e.g. returning from Settings).
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 
-            Task {
-                if authorizationStatus == .notDetermined {
-                    do {
-                        try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-                        print("Authorization granted")
-                        authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-                    } catch {
-                        print("Failed to enroll user with error: \(error)")
-                        authorizationStatus = .denied
-                    }
-                }
+            guard authorizationStatus == .notDetermined else { return }
+
+            do {
+                try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+            } catch {
+                print("Family Controls authorization failed: \(error)")
+                authorizationStatus = .denied
             }
         }
     }
