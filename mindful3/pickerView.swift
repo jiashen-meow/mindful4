@@ -22,8 +22,13 @@ struct pickerView: View {
     @State private var isFriendReportLoading = false
     @State private var isFoulReportLoading = false
 
-    // Counter written by the monitor extension, read here.
+    // Incremented each time "start battle!" is tapped so SwiftUI rebuilds
+    // the DeviceActivityReport views with the latest filter.
+    @State private var battleID: Int = 0
+
+    // Counters written by the monitor extension, read here.
     @State private var thresholdCount: Int = SharedStore.thresholdCount
+    @State private var foulThresholdCount: Int = SharedStore.foulThresholdCount
     
     @State private var segmentInterval: DeviceActivityFilter.SegmentInterval = .daily(
         during: Calendar.current.dateInterval(of: .day, for: .now)!
@@ -50,16 +55,6 @@ struct pickerView: View {
     
     var body: some View {
         VStack {
-            // --- Battle counter ---
-            Text("⚔️ Threshold hits: \(thresholdCount)")
-                .font(.headline)
-                .padding(.top)
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    // Refresh whenever the app comes back to the foreground,
-                    // since the extension wrote to shared UserDefaults while we were away.
-                    thresholdCount = SharedStore.thresholdCount
-                }
-            
             Divider()
             if friendSelection.categoryTokens.isEmpty && friendSelection.applicationTokens.isEmpty {
                 Button("pick your friend") {
@@ -67,14 +62,19 @@ struct pickerView: View {
                 }
                 .padding(100)
             } else {
-                VStack {
+                VStack(spacing: 4) {
+                    Text("⚔️ Friend hits: \(thresholdCount)")
+                        .font(.headline)
+                        .padding(.top, 8)
+
                     if isFriendReportLoading {
                         ProgressView("Loading friend app data...")
                             .frame(height: 100)
                     }
-                    
+
                     ScrollView {
                         DeviceActivityReport(friendContext, filter: friendFilter)
+                            .id(battleID)
                             .frame(minHeight: 300)
                             .background(Color.gray.opacity(0.1))
                             .cornerRadius(8)
@@ -85,8 +85,7 @@ struct pickerView: View {
                                 print("Filter segment: \(friendFilter.segmentInterval)")
                                 print("Selected apps: \(friendSelection.applicationTokens)")
                                 print("Selected categories: \(friendSelection.categoryTokens)")
-                                
-                                // Simulate completion - in practice, the report will load asynchronously
+
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                     isFriendReportLoading = false
                                 }
@@ -95,21 +94,25 @@ struct pickerView: View {
                 }
             }
 
-            
             if foulSelection.categoryTokens.isEmpty && foulSelection.applicationTokens.isEmpty {
                 Button("pick your foul") {
                     showingFoulPicker = true
                 }
                 .padding(100)
             } else {
-                VStack {
+                VStack(spacing: 4) {
+                    Text("💀 Foul hits: \(foulThresholdCount)")
+                        .font(.headline)
+                        .padding(.top, 8)
+
                     if isFoulReportLoading {
                         ProgressView("Loading foul app data...")
                             .frame(height: 100)
                     }
-                    
+
                     ScrollView {
                         DeviceActivityReport(foulContext, filter: foulFilter)
+                            .id(battleID)
                             .frame(minHeight: 300)
                             .background(Color.gray.opacity(0.1))
                             .cornerRadius(8)
@@ -120,8 +123,7 @@ struct pickerView: View {
                                 print("Filter segment: \(foulFilter.segmentInterval)")
                                 print("Selected apps: \(foulSelection.applicationTokens)")
                                 print("Selected categories: \(foulSelection.categoryTokens)")
-                                
-                                // Simulate completion - in practice, the report will load asynchronously
+
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                                     isFoulReportLoading = false
                                 }
@@ -131,22 +133,40 @@ struct pickerView: View {
             }
             HStack {
                 Button("reselect") {
-                    // Reset loading states when clearing selections
                     isFriendReportLoading = false
                     isFoulReportLoading = false
                     friendSelection = FamilyActivitySelection()
                     foulSelection = FamilyActivitySelection()
+                    SharedStore.removeFriendSelection()
+                    SharedStore.removeFoulSelection()
                 }
                 Button("reset count") {
                     SharedStore.resetThresholdCount()
+                    SharedStore.resetFoulThresholdCount()
                     thresholdCount = 0
+                    foulThresholdCount = 0
                 }
                 Button("start battle!") {
                     startMonitoring()
                 }
                 .padding()
             }
-
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Refresh both counters whenever the app returns to the foreground.
+            thresholdCount = SharedStore.thresholdCount
+            foulThresholdCount = SharedStore.foulThresholdCount
+        }
+        .onAppear {
+            // Restore saved selections so the UI survives app restarts.
+            if let saved = SharedStore.loadFriendSelection() {
+                friendSelection = saved
+            }
+            if let saved = SharedStore.loadFoulSelection() {
+                foulSelection = saved
+            }
+            thresholdCount = SharedStore.thresholdCount
+            foulThresholdCount = SharedStore.foulThresholdCount
         }
         .sheet(isPresented: $showingFriendPicker) {
             NavigationView {
@@ -157,6 +177,8 @@ struct pickerView: View {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
                                 showingFriendPicker = false
+                                // Persist immediately so it survives app restarts.
+                                SharedStore.saveFriendSelection(friendSelection)
                             }
                         }
                     }
@@ -171,6 +193,8 @@ struct pickerView: View {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
                                 showingFoulPicker = false
+                                // Persist immediately so it survives app restarts.
+                                SharedStore.saveFoulSelection(foulSelection)
                             }
                         }
                     }
@@ -180,35 +204,58 @@ struct pickerView: View {
 
     private func startMonitoring() {
         let center = DeviceActivityCenter()
-        let activityName = DeviceActivityName("mindful.daily")
+        let friendActivity = DeviceActivityName("mindful.daily")
+        let foulActivity   = DeviceActivityName("foul.daily")
 
-        // Build one event per 15-minute milestone for up to 8 hours of coverage
-        // (milestone_1 = 15 min, milestone_2 = 30 min, … milestone_32 = 480 min).
-        // The threshold accumulates across the interval — no stop/restart needed.
-        let stepMinutes = 15
-        let maxMilestones = 8  // 8 × 15 min = 2 hours
+        // Stop any existing sessions first so we can re-register with
+        // the latest selections.
+        center.stopMonitoring([friendActivity, foulActivity])
 
-        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+        // Persist both selections.
+        SharedStore.saveFriendSelection(friendSelection)
+        SharedStore.saveFoulSelection(foulSelection)
+
+        let stepMinutes  = 15
+        let maxMilestones = 8   // 8 × 15 min = 2 hours
+
+        let dailySchedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd:   DateComponents(hour: 23, minute: 59),
+            repeats: true   // OS resets cumulative usage at midnight automatically
+        )
+
+        // --- Friend events: "milestone_1" … "milestone_8" ---
+        var friendEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         for i in 1...maxMilestones {
-            events[DeviceActivityEvent.Name("milestone_\(i)")] = DeviceActivityEvent(
+            friendEvents[DeviceActivityEvent.Name("milestone_\(i)")] = DeviceActivityEvent(
                 applications: friendSelection.applicationTokens,
-                categories: friendSelection.categoryTokens,
-                webDomains: friendSelection.webDomainTokens,
-                threshold: DateComponents(minute: i * stepMinutes)
+                categories:   friendSelection.categoryTokens,
+                webDomains:   friendSelection.webDomainTokens,
+                threshold:    DateComponents(minute: i * stepMinutes)
+            )
+        }
+
+        // --- Foul events: "foul_milestone_1" … "foul_milestone_8" ---
+        var foulEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+        for i in 1...maxMilestones {
+            foulEvents[DeviceActivityEvent.Name("foul_milestone_\(i)")] = DeviceActivityEvent(
+                applications: foulSelection.applicationTokens,
+                categories:   foulSelection.categoryTokens,
+                webDomains:   foulSelection.webDomainTokens,
+                threshold:    DateComponents(minute: i * stepMinutes)
             )
         }
 
         do {
-            try center.startMonitoring(
-                activityName,
-                during: DeviceActivitySchedule(
-                    intervalStart: DateComponents(hour: 0, minute: 0),
-                    intervalEnd: DateComponents(hour: 23, minute: 59),
-                    repeats: true   // OS resets cumulative usage at midnight automatically
-                ),
-                events: events
-            )
-            print("Monitoring started with \(maxMilestones) milestones (step: \(stepMinutes) min)")
+            if !friendSelection.applicationTokens.isEmpty || !friendSelection.categoryTokens.isEmpty {
+                try center.startMonitoring(friendActivity, during: dailySchedule, events: friendEvents)
+                print("Friend monitoring started — \(maxMilestones) milestones")
+            }
+            if !foulSelection.applicationTokens.isEmpty || !foulSelection.categoryTokens.isEmpty {
+                try center.startMonitoring(foulActivity, during: dailySchedule, events: foulEvents)
+                print("Foul monitoring started — \(maxMilestones) milestones")
+            }
+            battleID += 1
         } catch {
             print("Failed to start monitoring: \(error)")
         }
