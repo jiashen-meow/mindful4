@@ -11,11 +11,15 @@ import FamilyControls
 @main
 struct MindfulApp: App {
     let center = AuthorizationCenter.shared
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .onAppear {
+                    guard center.authorizationStatus == .notDetermined else {
+                        print("Authorization already decided: \(center.authorizationStatus)")
+                        return
+                    }
                     Task {
                         do {
                             try await center.requestAuthorization(for: .individual)

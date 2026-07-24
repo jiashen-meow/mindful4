@@ -11,251 +11,438 @@ import DeviceActivity
 
 struct pickerView: View {
     @State private var friendSelection = FamilyActivitySelection()
-    @State private var foulSelection = FamilyActivitySelection()
-    @State private var showingFriendPicker = false
-    @State private var showingFoulPicker = false
-    @State private var context: DeviceActivityReport.Context = .totalActivity
-    @State private var friendContext: DeviceActivityReport.Context = .friendAppActivity
-    @State private var foulContext: DeviceActivityReport.Context = .foulAppActivity
-    
-    // Add loading states for better UX
-    @State private var isFriendReportLoading = false
-    @State private var isFoulReportLoading = false
+    @State private var foulSelection   = FamilyActivitySelection()
+    @State private var showingFriendPicker  = false
+    @State private var showingFoulPicker    = false
+    @State private var showingFriendReport  = false
+    @State private var showingFoulReport    = false
+    @State private var friendReportFilter:  DeviceActivityFilter? = nil
+    @State private var foulReportFilter:    DeviceActivityFilter? = nil
 
-    // Incremented each time "start battle!" is tapped so SwiftUI rebuilds
-    // the DeviceActivityReport views with the latest filter.
-    @State private var battleID: Int = 0
-
-    // Counters written by the monitor extension, read here.
-    @State private var thresholdCount: Int = SharedStore.thresholdCount
+    // Counters written by the DeviceActivityMonitor extension, read here.
+    @State private var thresholdCount:     Int = SharedStore.thresholdCount
     @State private var foulThresholdCount: Int = SharedStore.foulThresholdCount
-    
+
+    /// Controls which page is shown. Starts on the selection page;
+    /// flips to the battle page once the user taps the confirmation button.
+    @State private var showBattlePage: Bool = false
+
     @State private var segmentInterval: DeviceActivityFilter.SegmentInterval = .daily(
         during: Calendar.current.dateInterval(of: .day, for: .now)!
     )
-    
-    // Optimize filter creation - only include selected items to reduce data processing
+
+    // MARK: - Computed helpers
+
+    private var hasFriendSelection: Bool {
+        !friendSelection.applicationTokens.isEmpty || !friendSelection.categoryTokens.isEmpty
+    }
+
+    private var hasFoulSelection: Bool {
+        !foulSelection.applicationTokens.isEmpty || !foulSelection.categoryTokens.isEmpty
+    }
+
+    private var bothSelected: Bool {
+        hasFriendSelection && hasFoulSelection
+    }
+
     private var friendFilter: DeviceActivityFilter {
         DeviceActivityFilter(
             segment: segmentInterval,
-            applications: Set(friendSelection.applicationTokens), // Use Set for faster lookups
-            categories: Set(friendSelection.categoryTokens),
-            webDomains: Set(friendSelection.webDomainTokens)
+            applications: Set(friendSelection.applicationTokens),
+            categories:   Set(friendSelection.categoryTokens),
+            webDomains:   Set(friendSelection.webDomainTokens)
         )
     }
-    
+
     private var foulFilter: DeviceActivityFilter {
         DeviceActivityFilter(
             segment: segmentInterval,
-            applications: Set(foulSelection.applicationTokens), // Use Set for faster lookups
-            categories: Set(foulSelection.categoryTokens),
-            webDomains: Set(foulSelection.webDomainTokens)
+            applications: Set(foulSelection.applicationTokens),
+            categories:   Set(foulSelection.categoryTokens),
+            webDomains:   Set(foulSelection.webDomainTokens)
         )
     }
-    
+
+    private var friendIsWinning: Bool {
+        thresholdCount > foulThresholdCount
+    }
+
+    // MARK: - Body
+
     var body: some View {
-        VStack {
-            Divider()
-            if friendSelection.categoryTokens.isEmpty && friendSelection.applicationTokens.isEmpty {
-                Button("pick your friend") {
-                    showingFriendPicker = true
-                }
-                .padding(100)
-            } else {
-                VStack(spacing: 4) {
-                    Text("⚔️ Friend hits: \(thresholdCount)")
-                        .font(.headline)
-                        .padding(.top, 8)
+        if showBattlePage {
+            battlePage
+        } else {
+            selectionPage
+        }
+    }
 
-                    if isFriendReportLoading {
-                        ProgressView("Loading friend app data...")
-                            .frame(height: 100)
-                    }
+    // MARK: - Selection Page
 
-                    ScrollView {
-                        DeviceActivityReport(friendContext, filter: friendFilter)
-                            .id(battleID)
-                            .frame(minHeight: 300)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                            .onAppear {
-                                isFriendReportLoading = true
-                                print("DeviceActivityReport appeared")
-                                print("Context: \(friendContext)")
-                                print("Filter segment: \(friendFilter.segmentInterval)")
-                                print("Selected apps: \(friendSelection.applicationTokens)")
-                                print("Selected categories: \(friendSelection.categoryTokens)")
-
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                    isFriendReportLoading = false
-                                }
-                            }
-                    }
-                }
+    private var selectionPage: some View {
+        VStack(spacing: 0) {
+            // Top half: foul app slot
+            Button {
+                showingFoulPicker = true
+            } label: {
+                Image(hasFoulSelection ? "foulAppSelected" : "pickFoulApp")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            if foulSelection.categoryTokens.isEmpty && foulSelection.applicationTokens.isEmpty {
-                Button("pick your foul") {
-                    showingFoulPicker = true
-                }
-                .padding(100)
-            } else {
-                VStack(spacing: 4) {
-                    Text("💀 Foul hits: \(foulThresholdCount)")
-                        .font(.headline)
-                        .padding(.top, 8)
-
-                    if isFoulReportLoading {
-                        ProgressView("Loading foul app data...")
-                            .frame(height: 100)
-                    }
-
-                    ScrollView {
-                        DeviceActivityReport(foulContext, filter: foulFilter)
-                            .id(battleID)
-                            .frame(minHeight: 300)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                            .onAppear {
-                                isFoulReportLoading = true
-                                print("DeviceActivityReport appeared")
-                                print("Context: \(foulContext)")
-                                print("Filter segment: \(foulFilter.segmentInterval)")
-                                print("Selected apps: \(foulSelection.applicationTokens)")
-                                print("Selected categories: \(foulSelection.categoryTokens)")
-
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                    isFoulReportLoading = false
-                                }
-                            }
-                    }
-                }
+            // Bottom half: friend app slot
+            Button {
+                showingFriendPicker = true
+            } label: {
+                Image(hasFriendSelection ? "friendAppSelected" : "pickFriendApp")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Confirmation button — only tappable when both apps are selected
             HStack {
-                Button("reselect") {
-                    isFriendReportLoading = false
-                    isFoulReportLoading = false
-                    friendSelection = FamilyActivitySelection()
-                    foulSelection = FamilyActivitySelection()
-                    SharedStore.removeFriendSelection()
-                    SharedStore.removeFoulSelection()
-                }
-                Button("reset count") {
-                    SharedStore.resetThresholdCount()
-                    SharedStore.resetFoulThresholdCount()
-                    thresholdCount = 0
-                    foulThresholdCount = 0
-                }
-                Button("start battle!") {
+                Spacer()
+                Button {
+                    guard bothSelected else { return }
                     startMonitoring()
-                }
-                .padding()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            // Refresh both counters whenever the app returns to the foreground.
-            thresholdCount = SharedStore.thresholdCount
-            foulThresholdCount = SharedStore.foulThresholdCount
-        }
-        .onAppear {
-            // Restore saved selections so the UI survives app restarts.
-            if let saved = SharedStore.loadFriendSelection() {
-                friendSelection = saved
-            }
-            if let saved = SharedStore.loadFoulSelection() {
-                foulSelection = saved
-            }
-            thresholdCount = SharedStore.thresholdCount
-            foulThresholdCount = SharedStore.foulThresholdCount
-        }
-        .sheet(isPresented: $showingFriendPicker) {
-            NavigationView {
-                FamilyActivityPicker(selection: $friendSelection)
-                    .navigationTitle("Select Apps & Categories")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                showingFriendPicker = false
-                                // Persist immediately so it survives app restarts.
-                                SharedStore.saveFriendSelection(friendSelection)
-                            }
-                        }
+                    showBattlePage = true
+                    // Give the OS ~2s to wake the extension and fire catch-up milestones,
+                    // then pull the latest values from the shared container.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        SharedStore.defaults.synchronize()
+                        thresholdCount     = SharedStore.thresholdCount
+                        foulThresholdCount = SharedStore.foulThresholdCount
                     }
+                } label: {
+                    Image("buttonSelectionConfirmation")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 64)
+                        .opacity(bothSelected ? 1.0 : 0.4)
+                }
+                .disabled(!bothSelected)
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
         }
+        // ── Pickers ───────────────────────────────────────────────────────
         .sheet(isPresented: $showingFoulPicker) {
             NavigationView {
                 FamilyActivityPicker(selection: $foulSelection)
-                    .navigationTitle("Select Apps & Categories")
+                    .navigationTitle("Select Foul Apps")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
                                 showingFoulPicker = false
-                                // Persist immediately so it survives app restarts.
                                 SharedStore.saveFoulSelection(foulSelection)
                             }
                         }
                     }
             }
         }
+        .sheet(isPresented: $showingFriendPicker) {
+            NavigationView {
+                FamilyActivityPicker(selection: $friendSelection)
+                    .navigationTitle("Select Friend Apps")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingFriendPicker = false
+                                SharedStore.saveFriendSelection(friendSelection)
+                            }
+                        }
+                    }
+            }
+        }
+        // ── Lifecycle ─────────────────────────────────────────────────────
+        .onAppear {
+            SharedStore.defaults.synchronize()
+            if let saved = SharedStore.loadFriendSelection() { friendSelection = saved }
+            if let saved = SharedStore.loadFoulSelection()   { foulSelection   = saved }
+            thresholdCount     = SharedStore.thresholdCount
+            foulThresholdCount = SharedStore.foulThresholdCount
+            // If both selections were already saved and monitoring is active,
+            // jump straight to the battle page.
+            if hasFriendSelection && hasFoulSelection && SharedStore.isMonitoring {
+                showBattlePage = true
+            }
+        }
     }
 
+    // MARK: - Battle Page
+
+    private var battlePage: some View {
+        VStack(spacing: 0) {
+            GeometryReader { geo in
+                let rowH = geo.size.height / 8
+                let colW = geo.size.width  / 3
+
+                VStack(spacing: 0) {
+                    // ── Foul mascot (trailing-aligned) ────────────────────
+                    // Row 1 (2 rows tall): spacer (1/3) | foul mascot (2/3)
+                    HStack(spacing: 0) {
+                        Color.clear
+                            .frame(width: colW, height: rowH * 2)
+                        foulMascotView
+                            .frame(width: colW * 2, height: rowH * 2)
+                    }
+
+                    // Row 2: spacer (1/3) | foul HP bar (2/3)
+                    HStack(spacing: 0) {
+                        Color.clear
+                            .frame(width: colW, height: rowH)
+                        foulLeadingView
+                            .frame(width: colW * 2, height: rowH)
+                    }
+
+                    // ── Friend mascot (leading-aligned) ───────────────────
+                    // Row 3 (4 rows tall): friend mascot (2/3) | spacer (1/3)
+                    HStack(spacing: 0) {
+                        friendMascotView
+                            .frame(width: colW * 2, height: rowH * 4)
+                        Color.clear
+                            .frame(width: colW, height: rowH * 4)
+                    }
+
+                    // Row 4: friend HP bar (2/3) | spacer (1/3)
+                    HStack(spacing: 0) {
+                        friendTrailingView
+                            .frame(width: colW * 2, height: rowH)
+                        Color.clear
+                            .frame(width: colW, height: rowH)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            // ── Bottom action buttons ─────────────────────────────────────
+            HStack(spacing: 32) {
+                // Reselect — goes back to the selection page
+                Button {
+                    friendSelection = FamilyActivitySelection()
+                    foulSelection   = FamilyActivitySelection()
+                    SharedStore.removeFriendSelection()
+                    SharedStore.removeFoulSelection()
+                    SharedStore.resetThresholdCount()
+                    SharedStore.resetFoulThresholdCount()
+                    SharedStore.lastResetDate = ""
+                    SharedStore.isMonitoring  = false
+                    DeviceActivityCenter().stopMonitoring()
+                    thresholdCount     = 0
+                    foulThresholdCount = 0
+                    showBattlePage     = false
+                } label: {
+                    Image("buttonReselect")
+                        .resizable()
+                        .scaledToFit()
+                }
+
+                // Calendar (placeholder)
+                Button {
+                    // TODO: calendar feature
+                } label: {
+                    Image("buttonCalendar")
+                        .resizable()
+                        .scaledToFit()
+                }
+
+                // Sticker (placeholder)
+                Button {
+                    // TODO: sticker feature
+                } label: {
+                    Image("buttonSticker")
+                        .resizable()
+                        .scaledToFit()
+                }
+            }
+            .frame(height: 64)
+            .padding(.horizontal, 32)
+            .padding(.top, 32)
+            .padding(.bottom, 32)
+        }
+        // ── Report sheets ─────────────────────────────────────────────────
+        .sheet(isPresented: $showingFriendReport) {
+            VStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(uiColor: .systemGray4))
+                    .frame(width: 40, height: 4)
+                    .padding(.top, 12)
+                    .padding(.bottom, 20)
+
+                if let filter = friendReportFilter {
+                    DeviceActivityReport(.friendAppActivity, filter: filter)
+                        .id("friendReport")
+                }
+
+                Spacer()
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.hidden)
+        }
+        .sheet(isPresented: $showingFoulReport) {
+            VStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(uiColor: .systemGray4))
+                    .frame(width: 40, height: 4)
+                    .padding(.top, 12)
+                    .padding(.bottom, 20)
+
+                if let filter = foulReportFilter {
+                    DeviceActivityReport(.foulAppActivity, filter: filter)
+                        .id("foulReport")
+                }
+
+                Spacer()
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.hidden)
+        }
+        // ── Live counter updates ──────────────────────────────────────────
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            SharedStore.defaults.synchronize()
+            thresholdCount     = SharedStore.thresholdCount
+            foulThresholdCount = SharedStore.foulThresholdCount
+        }
+        // Catches writes made by the DeviceActivityMonitor extension
+        // while the app is already in the foreground.
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: SharedStore.defaults)) { _ in
+            let newFriend = SharedStore.thresholdCount
+            let newFoul   = SharedStore.foulThresholdCount
+            if newFriend != thresholdCount     { thresholdCount     = newFriend }
+            if newFoul   != foulThresholdCount { foulThresholdCount = newFoul   }
+        }
+    }
+
+    // MARK: - Sub-views
+
+    /// Foul HP bar — tapping opens the foul usage report sheet.
+    @ViewBuilder
+    private var foulLeadingView: some View {
+        Image("foulHP\(foulThresholdCount)")
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onTapGesture {
+                foulReportFilter = foulFilter
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    showingFoulReport = true
+                }
+            }
+    }
+
+    /// Foul mascot — unhappy when friend is winning, normal otherwise.
+    private var foulMascotView: some View {
+        Image(friendIsWinning ? "foulMascotUnhappy" : "foulMascot")
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onTapGesture {
+                foulReportFilter = foulFilter
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    showingFoulReport = true
+                }
+            }
+    }
+
+    /// Friend mascot — happy when friend is winning, unhappy otherwise.
+    private var friendMascotView: some View {
+        Image(friendIsWinning ? "friendMascot" : "friendMascotUnhappy")
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onTapGesture {
+                friendReportFilter = friendFilter
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    showingFriendReport = true
+                }
+            }
+    }
+
+    /// Friend HP bar — tapping opens the friend usage report sheet.
+    @ViewBuilder
+    private var friendTrailingView: some View {
+        Image("catHP\(thresholdCount)")
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onTapGesture {
+                friendReportFilter = friendFilter
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    showingFriendReport = true
+                }
+            }
+    }
+
+    // MARK: - Monitoring
+
     private func startMonitoring() {
-        let center = DeviceActivityCenter()
+        guard !SharedStore.isMonitoring else {
+            print("Monitoring already active — skipping startMonitoring()")
+            return
+        }
+
+        let center         = DeviceActivityCenter()
         let friendActivity = DeviceActivityName("mindful.daily")
         let foulActivity   = DeviceActivityName("foul.daily")
 
-        // Stop any existing sessions first so we can re-register with
-        // the latest selections.
         center.stopMonitoring([friendActivity, foulActivity])
 
-        // Persist both selections.
         SharedStore.saveFriendSelection(friendSelection)
         SharedStore.saveFoulSelection(foulSelection)
 
-        let stepMinutes  = 15
+        let stepMinutes   = 15
         let maxMilestones = 8   // 8 × 15 min = 2 hours
 
         let dailySchedule = DeviceActivitySchedule(
             intervalStart: DateComponents(hour: 0, minute: 0),
             intervalEnd:   DateComponents(hour: 23, minute: 59),
-            repeats: true   // OS resets cumulative usage at midnight automatically
+            repeats: true
         )
 
-        // --- Friend events: "milestone_1" … "milestone_8" ---
+        // Friend events: "milestone_1" … "milestone_8"
         var friendEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         for i in 1...maxMilestones {
             friendEvents[DeviceActivityEvent.Name("milestone_\(i)")] = DeviceActivityEvent(
-                applications: friendSelection.applicationTokens,
-                categories:   friendSelection.categoryTokens,
-                webDomains:   friendSelection.webDomainTokens,
-                threshold:    DateComponents(minute: i * stepMinutes)
+                applications:        friendSelection.applicationTokens,
+                categories:          friendSelection.categoryTokens,
+                webDomains:          friendSelection.webDomainTokens,
+                threshold:           DateComponents(minute: i * stepMinutes),
+                includesPastActivity: true
             )
         }
 
-        // --- Foul events: "foul_milestone_1" … "foul_milestone_8" ---
+        // Foul events: "foul_milestone_1" … "foul_milestone_8"
         var foulEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         for i in 1...maxMilestones {
             foulEvents[DeviceActivityEvent.Name("foul_milestone_\(i)")] = DeviceActivityEvent(
-                applications: foulSelection.applicationTokens,
-                categories:   foulSelection.categoryTokens,
-                webDomains:   foulSelection.webDomainTokens,
-                threshold:    DateComponents(minute: i * stepMinutes)
+                applications:        foulSelection.applicationTokens,
+                categories:          foulSelection.categoryTokens,
+                webDomains:          foulSelection.webDomainTokens,
+                threshold:           DateComponents(minute: i * stepMinutes),
+                includesPastActivity: true
             )
         }
 
         do {
-            if !friendSelection.applicationTokens.isEmpty || !friendSelection.categoryTokens.isEmpty {
+            if hasFriendSelection {
                 try center.startMonitoring(friendActivity, during: dailySchedule, events: friendEvents)
                 print("Friend monitoring started — \(maxMilestones) milestones")
             }
-            if !foulSelection.applicationTokens.isEmpty || !foulSelection.categoryTokens.isEmpty {
+            if hasFoulSelection {
                 try center.startMonitoring(foulActivity, during: dailySchedule, events: foulEvents)
                 print("Foul monitoring started — \(maxMilestones) milestones")
             }
-            battleID += 1
+            SharedStore.isMonitoring  = true
+            SharedStore.lastResetDate = SharedStore.todayString
         } catch {
             print("Failed to start monitoring: \(error)")
         }

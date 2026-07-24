@@ -7,6 +7,7 @@
 
 import DeviceActivity
 import Foundation
+import WidgetKit
 
 private let sharedSuiteName = "group.mindful3.shared"
 
@@ -15,6 +16,13 @@ private let sharedSuiteName = "group.mindful3.shared"
 private enum ExtensionKeys {
     static let thresholdCount     = "thresholdCount"
     static let foulThresholdCount = "foulThresholdCount"
+    static let lastResetDate      = "lastResetDate"
+}
+
+private var todayString: String {
+    let fmt = DateFormatter()
+    fmt.dateFormat = "yyyy-MM-dd"
+    return fmt.string(from: Date())
 }
 
 private var sharedDefaults: UserDefaults {
@@ -25,14 +33,26 @@ private var sharedDefaults: UserDefaults {
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalDidStart(for activity: DeviceActivityName) {
-        // New day → reset whichever counter owns this activity.
+        // Only reset counters if this is genuinely a new calendar day.
+        // On the very first startMonitoring() call, intervalDidStart fires
+        // on the same day the counts were last valid — we must not wipe them
+        // or we'll clear the state before includesPastActivity fires catch-up events.
+        let today = todayString
+        let lastReset = sharedDefaults.string(forKey: ExtensionKeys.lastResetDate) ?? ""
+
+        guard today != lastReset else {
+            print("Interval started: \(activity.rawValue) — same day as last reset, skipping count reset")
+            return
+        }
+
         switch activity.rawValue {
         case "mindful.daily":
             sharedDefaults.set(0, forKey: ExtensionKeys.thresholdCount)
-            print("Interval started: mindful.daily — friend count reset to 0")
+            sharedDefaults.set(today, forKey: ExtensionKeys.lastResetDate)
+            print("Interval started: mindful.daily — friend count reset to 0 (new day: \(today))")
         case "foul.daily":
             sharedDefaults.set(0, forKey: ExtensionKeys.foulThresholdCount)
-            print("Interval started: foul.daily — foul count reset to 0")
+            print("Interval started: foul.daily — foul count reset to 0 (new day: \(today))")
         default:
             break
         }
@@ -53,13 +73,21 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         if raw.hasPrefix("foul_milestone_") {
             let count = Int(raw.split(separator: "_").last ?? "0") ?? 0
-            sharedDefaults.set(count, forKey: ExtensionKeys.foulThresholdCount)
-            print("Foul milestone reached — \(raw), foul count = \(count)")
+            let current = sharedDefaults.integer(forKey: ExtensionKeys.foulThresholdCount)
+            if count > current {
+                sharedDefaults.set(count, forKey: ExtensionKeys.foulThresholdCount)
+            }
+            print("Foul milestone reached — \(raw), foul count = \(count), current = \(current)")
         } else if raw.hasPrefix("milestone_") {
             let count = Int(raw.split(separator: "_").last ?? "0") ?? 0
-            sharedDefaults.set(count, forKey: ExtensionKeys.thresholdCount)
-            print("Friend milestone reached — \(raw), friend count = \(count)")
+            let current = sharedDefaults.integer(forKey: ExtensionKeys.thresholdCount)
+            if count > current {
+                sharedDefaults.set(count, forKey: ExtensionKeys.thresholdCount)
+            }
+            print("Friend milestone reached — \(raw), friend count = \(count), current = \(current)")
         }
+        
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     override func intervalWillStartWarning(for activity: DeviceActivityName) {

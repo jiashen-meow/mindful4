@@ -38,6 +38,8 @@ struct ContentView: View {
                 EmptyView()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(red: 250/255, green: 246/255, blue: 238/255).ignoresSafeArea())
         .task {
             // Re-check status every time the view appears (e.g. returning from Settings).
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus

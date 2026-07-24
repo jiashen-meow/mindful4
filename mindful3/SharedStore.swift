@@ -21,6 +21,8 @@ enum SharedStore {
         static let foulThresholdCount = "foulThresholdCount"
         static let friendSelection    = "friendSelection"
         static let foulSelection      = "foulSelection"
+        static let isMonitoring       = "isMonitoring"
+        static let lastResetDate      = "lastResetDate"
     }
 
     // force-unwrap is safe: the suite name is a compile-time constant
@@ -51,6 +53,32 @@ enum SharedStore {
 
     static func resetFoulThresholdCount() {
         foulThresholdCount = 0
+    }
+
+    // MARK: - Monitoring flag
+
+    /// True while DeviceActivityCenter is actively monitoring both activities.
+    /// Set to true by the main app when startMonitoring() succeeds,
+    /// and false when reselect clears the selections.
+    static var isMonitoring: Bool {
+        get { defaults.bool(forKey: Keys.isMonitoring) }
+        set { defaults.set(newValue, forKey: Keys.isMonitoring) }
+    }
+
+    // MARK: - Last reset date
+
+    /// The calendar day (yyyy-MM-dd) on which the counts were last reset.
+    /// Used by the monitor extension to distinguish a genuine new-day rollover
+    /// from an initial startMonitoring() call on the same day.
+    static var lastResetDate: String {
+        get { defaults.string(forKey: Keys.lastResetDate) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.lastResetDate) }
+    }
+
+    static var todayString: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        return fmt.string(from: Date())
     }
 
     // MARK: - Selections

@@ -7,12 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3A4C74603012387E00AFE58F /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A4C745F3012387E00AFE58F /* WidgetKit.framework */; };
+		3A4C74623012387E00AFE58F /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A4C74613012387E00AFE58F /* SwiftUI.framework */; };
+		3A4C746F3012388000AFE58F /* mindful3WidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3A4C745E3012387E00AFE58F /* mindful3WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3AD2FD11300E031E00D63C45 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AD2FD10300E031E00D63C45 /* DeviceActivity.framework */; };
 		3AD2FD19300E031E00D63C45 /* MindfulActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3AD2FD0E300E031E00D63C45 /* MindfulActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3AFBAF682E7E9A05009F0990 /* mindfulReportExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 3AFBAF5C2E7E9A05009F0990 /* mindfulReportExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		3A4C746D3012388000AFE58F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3AFBAF152E7E9911009F0990 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3A4C745D3012387E00AFE58F;
+			remoteInfo = mindful3WidgetExtension;
+		};
 		3AD2FD17300E031E00D63C45 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3AFBAF152E7E9911009F0990 /* Project object */;
@@ -36,6 +46,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				3A4C746F3012388000AFE58F /* mindful3WidgetExtension.appex in Embed Foundation Extensions */,
 				3AD2FD19300E031E00D63C45 /* MindfulActivityMonitor.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
@@ -55,6 +66,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3A4C745E3012387E00AFE58F /* mindful3WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = mindful3WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3A4C745F3012387E00AFE58F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		3A4C74613012387E00AFE58F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		3A4C7474301238FA00AFE58F /* mindful3WidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = mindful3WidgetExtension.entitlements; sourceTree = "<group>"; };
 		3AD2FD0E300E031E00D63C45 /* MindfulActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MindfulActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3AD2FD10300E031E00D63C45 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		3AFBAF1D2E7E9911009F0990 /* mindful3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mindful3.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -62,6 +77,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3A4C74733012388000AFE58F /* Exceptions for "mindful3Widget" folder in "mindful3WidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3A4C745D3012387E00AFE58F /* mindful3WidgetExtension */;
+		};
 		3AD2FD1D300E031E00D63C45 /* Exceptions for "MindfulActivityMonitor" folder in "MindfulActivityMonitor" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -87,6 +109,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3A4C74633012387E00AFE58F /* mindful3Widget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3A4C74733012388000AFE58F /* Exceptions for "mindful3Widget" folder in "mindful3WidgetExtension" target */,
+			);
+			path = mindful3Widget;
+			sourceTree = "<group>";
+		};
 		3AD2FD12300E031E00D63C45 /* MindfulActivityMonitor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -112,6 +142,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3A4C745B3012387E00AFE58F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A4C74623012387E00AFE58F /* SwiftUI.framework in Frameworks */,
+				3A4C74603012387E00AFE58F /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3AD2FD0B300E031E00D63C45 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -141,6 +180,8 @@
 			isa = PBXGroup;
 			children = (
 				3AD2FD10300E031E00D63C45 /* DeviceActivity.framework */,
+				3A4C745F3012387E00AFE58F /* WidgetKit.framework */,
+				3A4C74613012387E00AFE58F /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -148,9 +189,11 @@
 		3AFBAF142E7E9911009F0990 = {
 			isa = PBXGroup;
 			children = (
+				3A4C7474301238FA00AFE58F /* mindful3WidgetExtension.entitlements */,
 				3AFBAF1F2E7E9911009F0990 /* mindful3 */,
 				3AFBAF5D2E7E9A05009F0990 /* mindfulReportExtension */,
 				3AD2FD12300E031E00D63C45 /* MindfulActivityMonitor */,
+				3A4C74633012387E00AFE58F /* mindful3Widget */,
 				3AD2FD0F300E031E00D63C45 /* Frameworks */,
 				3AFBAF1E2E7E9911009F0990 /* Products */,
 			);
@@ -162,6 +205,7 @@
 				3AFBAF1D2E7E9911009F0990 /* mindful3.app */,
 				3AFBAF5C2E7E9A05009F0990 /* mindfulReportExtension.appex */,
 				3AD2FD0E300E031E00D63C45 /* MindfulActivityMonitor.appex */,
+				3A4C745E3012387E00AFE58F /* mindful3WidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -169,6 +213,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		3A4C745D3012387E00AFE58F /* mindful3WidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3A4C74703012388000AFE58F /* Build configuration list for PBXNativeTarget "mindful3WidgetExtension" */;
+			buildPhases = (
+				3A4C745A3012387E00AFE58F /* Sources */,
+				3A4C745B3012387E00AFE58F /* Frameworks */,
+				3A4C745C3012387E00AFE58F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3A4C74633012387E00AFE58F /* mindful3Widget */,
+			);
+			name = mindful3WidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = mindful3WidgetExtension;
+			productReference = 3A4C745E3012387E00AFE58F /* mindful3WidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		3AD2FD0D300E031E00D63C45 /* MindfulActivityMonitor */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3AD2FD1A300E031E00D63C45 /* Build configuration list for PBXNativeTarget "MindfulActivityMonitor" */;
@@ -206,6 +272,7 @@
 			dependencies = (
 				3AFBAF672E7E9A05009F0990 /* PBXTargetDependency */,
 				3AD2FD18300E031E00D63C45 /* PBXTargetDependency */,
+				3A4C746E3012388000AFE58F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3AFBAF1F2E7E9911009F0990 /* mindful3 */,
@@ -249,6 +316,9 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					3A4C745D3012387E00AFE58F = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					3AD2FD0D300E031E00D63C45 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -277,11 +347,19 @@
 				3AFBAF1C2E7E9911009F0990 /* mindful3 */,
 				3AFBAF5B2E7E9A05009F0990 /* mindfulReportExtension */,
 				3AD2FD0D300E031E00D63C45 /* MindfulActivityMonitor */,
+				3A4C745D3012387E00AFE58F /* mindful3WidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3A4C745C3012387E00AFE58F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3AD2FD0C300E031E00D63C45 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -306,6 +384,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3A4C745A3012387E00AFE58F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3AD2FD0A300E031E00D63C45 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -330,6 +415,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3A4C746E3012388000AFE58F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3A4C745D3012387E00AFE58F /* mindful3WidgetExtension */;
+			targetProxy = 3A4C746D3012388000AFE58F /* PBXContainerItemProxy */;
+		};
 		3AD2FD18300E031E00D63C45 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 3AD2FD0D300E031E00D63C45 /* MindfulActivityMonitor */;
@@ -343,6 +433,68 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		3A4C74713012388000AFE58F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = mindful3WidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9R32S2P574;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mindful3Widget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = mindful3Widget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = meow.jia.shen.mindful3.mindful3Widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3A4C74723012388000AFE58F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = mindful3WidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9R32S2P574;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mindful3Widget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = mindful3Widget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = meow.jia.shen.mindful3.mindful3Widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		3AD2FD1B300E031E00D63C45 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -661,6 +813,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		3A4C74703012388000AFE58F /* Build configuration list for PBXNativeTarget "mindful3WidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3A4C74713012388000AFE58F /* Debug */,
+				3A4C74723012388000AFE58F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		3AD2FD1A300E031E00D63C45 /* Build configuration list for PBXNativeTarget "MindfulActivityMonitor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
