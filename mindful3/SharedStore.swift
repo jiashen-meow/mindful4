@@ -81,6 +81,13 @@ enum SharedStore {
         return fmt.string(from: Date())
     }
 
+    static var yesterdayString: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        return fmt.string(from: yesterday)
+    }
+
     // MARK: - Selections
 
     /// Persists a `FamilyActivitySelection` under the given key.

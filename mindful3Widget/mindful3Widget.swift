@@ -15,7 +15,13 @@ struct MindfulEntry: TimelineEntry {
     let friendCount: Int
     let foulCount: Int
 
-    var catIsWinning: Bool { friendCount > foulCount }
+    enum WidgetState { case winning, losing, draw }
+
+    var widgetState: WidgetState {
+        if friendCount > foulCount  { return .winning }
+        if foulCount   > friendCount { return .losing  }
+        return .draw
+    }
 }
 
 // MARK: - Provider
@@ -23,7 +29,8 @@ struct MindfulEntry: TimelineEntry {
 struct MindfulProvider: TimelineProvider {
 
     private func currentEntry() -> MindfulEntry {
-        let defaults = UserDefaults(suiteName: "group.mindful3.shared")!
+        let defaults = UserDefaults(suiteName: "group.mindful3.shared")
+            ?? UserDefaults.standard
         return MindfulEntry(
             date: .now,
             friendCount: defaults.integer(forKey: "thresholdCount"),
@@ -52,11 +59,33 @@ struct MindfulProvider: TimelineProvider {
 struct mindful3WidgetEntryView: View {
     var entry: MindfulEntry
 
+    private var imageAsset: String {
+        switch entry.widgetState {
+        case .winning: return "widgetWinning"
+        case .losing:  return "widgetLosing"
+        case .draw:    return "widgetDraw"
+        }
+    }
+
+    private var stateLabel: String {
+        switch entry.widgetState {
+        case .winning: return "Winning 🏆"
+        case .losing:  return "Losing 😤"
+        case .draw:    return "Draw 🤝"
+        }
+    }
+
     var body: some View {
-        Image(entry.catIsWinning ? "widgetWinning" : "widgetLosing")
-            .resizable()
-            .scaledToFit()
-            .containerBackground(.white, for: .widget)
+        HStack {
+            VStack(alignment: .leading) {
+                Image(imageAsset)
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .containerBackground(for: .widget) {
+            Color.white
+        }
     }
 }
 
@@ -81,5 +110,6 @@ struct mindful3Widget: Widget {
     mindful3Widget()
 } timeline: {
     MindfulEntry(date: .now, friendCount: 5, foulCount: 2) // winning
-    MindfulEntry(date: .now, friendCount: 1, foulCount: 6) // losing
+//    MindfulEntry(date: .now, friendCount: 1, foulCount: 6) // losing
+//    MindfulEntry(date: .now, friendCount: 3, foulCount: 3) // draw
 }

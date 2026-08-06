@@ -21,6 +21,48 @@
                ReferencedContainer = "container:mindful3.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3AD2FD0D300E031E00D63C45"
+               BuildableName = "MindfulActivityMonitor.appex"
+               BlueprintName = "MindfulActivityMonitor"
+               ReferencedContainer = "container:mindful3.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3A4C745D3012387E00AFE58F"
+               BuildableName = "mindful3WidgetExtension.appex"
+               BlueprintName = "mindful3WidgetExtension"
+               ReferencedContainer = "container:mindful3.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "3AFBAF5B2E7E9A05009F0990"
+               BuildableName = "mindfulReportExtension.appex"
+               BlueprintName = "mindfulReportExtension"
+               ReferencedContainer = "container:mindful3.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

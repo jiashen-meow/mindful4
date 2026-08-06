@@ -5,6 +5,27 @@
       location = "self:">
    </FileRef>
    <FileRef
-      location = "group:mindful3Widget.swift">
+      location = "group:Font+App.swift">
+   </FileRef>
+   <FileRef
+      location = "group:MainPageView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:ResultPageView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:ConfirmationPageView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:SelectedPageView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:SelectionPageView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:HistoryPageView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:AchievementPageView.swift">
    </FileRef>
 </Workspace>

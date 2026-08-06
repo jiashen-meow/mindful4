@@ -10,22 +10,22 @@ import DeviceActivity
 import FamilyControls
 
 extension DeviceActivityReport.Context {
-    // If your app initializes a DeviceActivityReport with this context, then the system will use
-    // your extension's corresponding DeviceActivityReportScene to render the contents of the
-    // report.
-    static let totalActivity = Self("Total Activity")
+    static let totalActivity    = Self("Total Activity")
     static let friendAppActivity = Self("Friend App Activity")
-    static let foulAppActivity = Self("Foul App Activity")
+    static let foulAppActivity   = Self("Foul App Activity")
 }
 
 struct ContentView: View {
+
     @State private var authorizationStatus: AuthorizationStatus = .notDetermined
+    @State private var appState = AppState()
 
     public var body: some View {
-        VStack {
+        ZStack {
             switch authorizationStatus {
             case .approved:
                 pickerView()
+                    .environment(appState)
             case .denied:
                 ContentUnavailableView(
                     "Screen Time Access Required",
@@ -41,18 +41,31 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(red: 250/255, green: 246/255, blue: 238/255).ignoresSafeArea())
         .task {
-            // Re-check status every time the view appears (e.g. returning from Settings).
+            await requestOrRefreshAuthorization()
+        }
+        // Re-check every time the app comes back from the background
+        // (e.g. user granted access in Settings → Screen Time).
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.didBecomeActiveNotification)
+        ) { _ in
+            Task { await requestOrRefreshAuthorization() }
+        }
+    }
+    // MARK: - Helpers
+    
+    @MainActor
+    private func requestOrRefreshAuthorization() async {
+        // Always re-read the current status first.
+        authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+
+        // Only show the system prompt if still undecided.
+        guard authorizationStatus == .notDetermined else { return }
+        do {
+            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-
-            guard authorizationStatus == .notDetermined else { return }
-
-            do {
-                try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-                authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-            } catch {
-                print("Family Controls authorization failed: \(error)")
-                authorizationStatus = .denied
-            }
+        } catch {
+            print("Family Controls authorization failed: \(error)")
+            authorizationStatus = .denied
         }
     }
 }

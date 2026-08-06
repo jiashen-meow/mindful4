@@ -91,6 +91,22 @@
 			);
 			target = 3AD2FD0D300E031E00D63C45 /* MindfulActivityMonitor */;
 		};
+		3ADB2563301B2DFA0036A101 /* Exceptions for "mindful3" folder in "mindful3WidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+				"Font+App.swift",
+				"GloriaHallelujah-Regular.ttf",
+			);
+			target = 3A4C745D3012387E00AFE58F /* mindful3WidgetExtension */;
+		};
+		3ADB2565301B2E9B0036A101 /* Exceptions for "mindful3" folder in "mindful3" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3AFBAF1C2E7E9911009F0990 /* mindful3 */;
+		};
 		3AFBAF692E7E9A05009F0990 /* Exceptions for "mindfulReportExtension" folder in "mindfulReportExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -127,6 +143,10 @@
 		};
 		3AFBAF1F2E7E9911009F0990 /* mindful3 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3ADB2565301B2E9B0036A101 /* Exceptions for "mindful3" folder in "mindful3" target */,
+				3ADB2563301B2DFA0036A101 /* Exceptions for "mindful3" folder in "mindful3WidgetExtension" target */,
+			);
 			path = mindful3;
 			sourceTree = "<group>";
 		};
@@ -685,6 +705,7 @@
 				DEVELOPMENT_TEAM = 9R32S2P574;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mindful3/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -723,6 +744,7 @@
 				DEVELOPMENT_TEAM = 9R32S2P574;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mindful3/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -17,6 +17,43 @@ private enum ExtensionKeys {
     static let thresholdCount     = "thresholdCount"
     static let foulThresholdCount = "foulThresholdCount"
     static let lastResetDate      = "lastResetDate"
+    static let battleHistory      = "battleHistory"
+}
+
+// MARK: - Midnight result persistence
+
+/// Reads yesterday's counts and writes the battle result to the history dictionary
+/// before the counts are reset. Mirrors HistoryStore logic without importing the main target.
+private func saveYesterdayResult(using defaults: UserDefaults) {
+    let friendCount = defaults.integer(forKey: ExtensionKeys.thresholdCount)
+    let foulCount   = defaults.integer(forKey: ExtensionKeys.foulThresholdCount)
+
+    let result: String
+    if friendCount > foulCount   { result = "win"  }
+    else if foulCount > friendCount { result = "loss" }
+    else                           { result = "draw" }
+
+    let fmt = DateFormatter()
+    fmt.dateFormat = "yyyy-MM-dd"
+    // At midnight the "previous" day is still "yesterday" relative to the new day.
+    let yesterday = fmt.string(
+        from: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+    )
+
+    // Read → mutate → write the history dict.
+    var history: [String: String]
+    if let data = defaults.data(forKey: ExtensionKeys.battleHistory),
+       let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
+        history = decoded
+    } else {
+        history = [:]
+    }
+
+    history[yesterday] = result
+
+    if let encoded = try? JSONEncoder().encode(history) {
+        defaults.set(encoded, forKey: ExtensionKeys.battleHistory)
+    }
 }
 
 private var todayString: String {
@@ -33,16 +70,19 @@ private var sharedDefaults: UserDefaults {
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalDidStart(for activity: DeviceActivityName) {
-        // Only reset counters if this is genuinely a new calendar day.
-        // On the very first startMonitoring() call, intervalDidStart fires
-        // on the same day the counts were last valid — we must not wipe them
-        // or we'll clear the state before includesPastActivity fires catch-up events.
-        let today = todayString
+        let today     = todayString
         let lastReset = sharedDefaults.string(forKey: ExtensionKeys.lastResetDate) ?? ""
 
         guard today != lastReset else {
             print("Interval started: \(activity.rawValue) — same day as last reset, skipping count reset")
             return
+        }
+
+        // This is a genuine new-day rollover. Save yesterday's result BEFORE
+        // resetting counts so the result page has the right numbers.
+        // Only do it once (on the first of the two activities to fire).
+        if activity.rawValue == "mindful.daily" {
+            saveYesterdayResult(using: sharedDefaults)
         }
 
         switch activity.rawValue {
