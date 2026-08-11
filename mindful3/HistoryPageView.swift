@@ -21,7 +21,7 @@ struct HistoryPageView: View {
     private let weekdaySymbols: [String] = {
         var cal = Calendar.current
         cal.firstWeekday = 1
-        return cal.shortWeekdaySymbols
+        return cal.veryShortWeekdaySymbols
     }()
 
     var body: some View {
@@ -30,9 +30,26 @@ struct HistoryPageView: View {
             Color(red: 250/255, green: 246/255, blue: 238/255)
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
 
-                Spacer().frame(height: 60)
+            VStack(alignment: .leading) {
+                // ── Back button ───────────────────────────────────────────────
+                Button {
+                    state.currentPage = .main
+                } label: {
+                    HStack() {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        
+                        Text("go back")
+                            .font(.appCaption)
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 8)
+                }
+
+//                Spacer().frame(height: 60)
 
                 // ── Month navigation header ───────────────────────────────
                 HStack {
@@ -40,7 +57,7 @@ struct HistoryPageView: View {
                         stepMonth(by: -1)
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.primary)
                     }
 
@@ -56,7 +73,7 @@ struct HistoryPageView: View {
                         stepMonth(by: 1)
                     } label: {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.primary)
                     }
                 }
@@ -66,10 +83,10 @@ struct HistoryPageView: View {
 
                 // ── Weekday labels ────────────────────────────────────────
                 LazyVGrid(columns: columns, spacing: 0) {
-                    ForEach(weekdaySymbols, id: \.self) { symbol in
-                        Text(symbol)
+                    ForEach(weekdaySymbols.indices, id: \.self) { index in
+                        Text(weekdaySymbols[index])
                             .font(.appCaption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity)
                             .padding(.bottom, 8)
                     }
@@ -80,32 +97,39 @@ struct HistoryPageView: View {
                 let winDates = HistoryStore.winDates(in: displayYear, month: displayMonth)
                 let cells    = buildCells()
 
-                LazyVGrid(columns: columns, spacing: 12) {
+                LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(cells, id: \.id) { cell in
                         dayCell(cell, isWin: winDates.contains(cell.dateString))
                     }
                 }
                 .padding(.horizontal, 16)
 
-                Spacer()
-            }
+                Spacer().frame(height: 16)
 
-            // ── Back button ───────────────────────────────────────────────
-            Button {
-                state.currentPage = .main
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("go back")
+                Spacer()
+
+                // ── Silhouette & quote ────────────────────────────────────
+                ZStack(alignment: .center) {
+
+                    GeometryReader { proxy in
+                        Image("historySilhouette")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: proxy.size.width / 3)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 48)
+                    }
+                    
+                    Text("Quicato defending the world from\nmundane things.\nHelp her along her journey.")
                         .font(.appCaption)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 48)
                 }
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
             }
-            .padding(.top, 56)
-            .padding(.leading, 8)
+            .tint(.primary)
+
         }
     }
 
@@ -122,11 +146,11 @@ struct HistoryPageView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 36, height: 36)
+                } else {
+                    Text("\(cell.day)")
+                        .font(.appCaption)
+                        .foregroundStyle(.primary)
                 }
-                Text("\(cell.day)")
-                    .font(.appCaption)
-                    .fontWeight(isWin ? .bold : .regular)
-                    .foregroundStyle(isWin ? .primary : .secondary)
             }
             .frame(height: 40)
         }
@@ -188,6 +212,7 @@ struct HistoryPageView: View {
         fmt.dateFormat = "MMMM yyyy"
         return fmt.string(from: date)
     }
+
 }
 
 #Preview {

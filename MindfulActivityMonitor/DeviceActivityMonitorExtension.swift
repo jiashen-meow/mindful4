@@ -9,10 +9,11 @@ import DeviceActivity
 import Foundation
 import WidgetKit
 
-private let sharedSuiteName = "group.mindful3.shared"
+private let sharedSuiteName = "group.jia.shen.quicato"
 
 // Keys mirroring SharedStore.Keys — duplicated so the extension
 // doesn't need to import the main app target.
+// Suite name must match SharedStore.suiteName and the App Group entitlement in both targets.
 private enum ExtensionKeys {
     static let thresholdCount     = "thresholdCount"
     static let foulThresholdCount = "foulThresholdCount"

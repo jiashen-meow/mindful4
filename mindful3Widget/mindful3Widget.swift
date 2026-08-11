@@ -29,7 +29,7 @@ struct MindfulEntry: TimelineEntry {
 struct MindfulProvider: TimelineProvider {
 
     private func currentEntry() -> MindfulEntry {
-        let defaults = UserDefaults(suiteName: "group.mindful3.shared")
+        let defaults = UserDefaults(suiteName: "group.jia.shen.quicato")
             ?? UserDefaults.standard
         return MindfulEntry(
             date: .now,

@@ -109,6 +109,12 @@ final class AppState {
             return
         }
 
+        // Don't interrupt an in-progress setup flow.
+        let setupPages: Set<AppPage> = [.selection, .selected, .confirmation]
+        if setupPages.contains(currentPage) && !SharedStore.isMonitoring {
+            return
+        }
+
         // Otherwise restore the right page.
         if SharedStore.isMonitoring {
             currentPage = .main

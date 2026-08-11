@@ -14,7 +14,7 @@ import FamilyControls
 
 enum SharedStore {
     // Must match the App Group identifier added in Xcode → Signing & Capabilities.
-    static let suiteName = "group.mindful3.shared"
+    static let suiteName = "group.jia.shen.quicato"
 
     enum Keys {
         static let thresholdCount     = "thresholdCount"
