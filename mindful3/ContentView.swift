@@ -12,7 +12,7 @@ import FamilyControls
 extension DeviceActivityReport.Context {
     static let totalActivity    = Self("Total Activity")
     static let friendAppActivity = Self("Friend App Activity")
-    static let foulAppActivity   = Self("Foul App Activity")
+    static let foeAppActivity   = Self("foe App Activity")
 }
 
 struct ContentView: View {

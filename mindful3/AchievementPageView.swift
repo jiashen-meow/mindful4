@@ -88,7 +88,7 @@ struct AchievementPageView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
 
-            Color(red: 250/255, green: 246/255, blue: 238/255)
+            Color.appBackground
                 .ignoresSafeArea()
             
             // ── Back button ───────────────────────────────────────────────
@@ -100,7 +100,7 @@ struct AchievementPageView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 11, weight: .semibold))
                         Text("go back")
-                            .font(.appCaption)
+                            .appCaption
                     }
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 12)
@@ -128,7 +128,7 @@ struct AchievementPageView: View {
             
             GeometryReader { geo in
                 let gradientHeight = geo.size.height * 0.1
-                let fadeColor = Color(red: 0xFF / 255.0, green: 0xFD / 255.0, blue: 0xF7 / 255.0)
+                let fadeColor = Color.appBackground
 
                 VStack(spacing: 0) {
                     Spacer()
@@ -157,7 +157,7 @@ struct AchievementPageView: View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.appBody)
+                    .appBody
                     .foregroundStyle(.primary)
 
                 Rectangle()
@@ -165,7 +165,7 @@ struct AchievementPageView: View {
                     .frame(height: 1)
 
                 Text(subtitle)
-                    .font(.appCaption)
+                    .appCaption
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -190,7 +190,7 @@ struct AchievementPageView: View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(chapter.title)
-                    .font(.appBody)
+                    .appBody
                     .foregroundStyle(.secondary)
 
                 Rectangle()
@@ -198,7 +198,7 @@ struct AchievementPageView: View {
                     .frame(height: 1)
 
                 Text(chapter.subtitle)
-                    .font(.appCaption)
+                    .appCaption
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -229,7 +229,7 @@ struct AchievementPageView: View {
                     .frame(width: circleSize, height: circleSize)
 
                 Text("???")
-                    .font(.appCaption)
+                    .appCaption
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
@@ -274,7 +274,7 @@ struct AchievementPageView: View {
                 }
 
                 Text(achievement.title)
-                    .font(.appCaption)
+                    .appCaption
                     .fontWeight(unlocked ? .bold : .regular)
                     .foregroundStyle(unlocked ? .primary : .secondary)
                     .multilineTextAlignment(.center)

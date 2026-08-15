@@ -15,16 +15,13 @@ import DeviceActivity
 // MARK: - App flow pages
 
 enum AppPage {
-    /// Blank "tap to pick" slots — no selections yet, or user tapped "app selection" tab.
+    /// Selection / review screen — shown before a battle starts, or when the
+    /// user taps "app selection" from the main page. The view handles both the
+    /// empty-state (nothing selected yet) and the review-state (tap to change)
+    /// in a single unified layout.
     case selection
-    /// Review page: shows chosen app icons, "tap to change".
-    case selected
-    /// Ghost vs cat explainer before first battle.
-    case confirmation
     /// Live battle view.
     case main
-    /// Post-midnight result screen.
-    case result
     /// Monthly calendar of past results.
     case history
     /// Achievement sticker book.
@@ -35,7 +32,7 @@ enum AppPage {
 
 enum BattleOutcome {
     case catWon
-    case foulWon
+    case foeWon
     case draw
 }
 
@@ -54,31 +51,40 @@ final class AppState {
     // MARK: Selections
 
     var friendSelection: FamilyActivitySelection = FamilyActivitySelection()
-    var foulSelection:   FamilyActivitySelection = FamilyActivitySelection()
+    var foeSelection:   FamilyActivitySelection = FamilyActivitySelection()
 
     var hasFriendSelection: Bool {
         !friendSelection.applicationTokens.isEmpty || !friendSelection.categoryTokens.isEmpty
     }
 
-    var hasFoulSelection: Bool {
-        !foulSelection.applicationTokens.isEmpty || !foulSelection.categoryTokens.isEmpty
+    var hasfoeSelection: Bool {
+        !foeSelection.applicationTokens.isEmpty || !foeSelection.categoryTokens.isEmpty
     }
 
-    var bothSelected: Bool { hasFriendSelection && hasFoulSelection }
+    var bothSelected: Bool { hasFriendSelection && hasfoeSelection }
+
+    /// True when there is an active battle AND the user has altered at least
+    /// one selection from the values that were committed when monitoring started.
+    /// Compared by diffing the token sets against whatever SharedStore persisted
+    /// at `startMonitoring()` time.
+    var selectionChanged: Bool {
+        guard hasActiveBattle else { return false }
+        let savedFriend = SharedStore.loadFriendSelection() ?? FamilyActivitySelection()
+        let savedfoe   = SharedStore.loadfoeSelection()   ?? FamilyActivitySelection()
+        let friendDiffers = friendSelection.applicationTokens != savedFriend.applicationTokens
+                         || friendSelection.categoryTokens    != savedFriend.categoryTokens
+        let foeDiffers   = foeSelection.applicationTokens   != savedfoe.applicationTokens
+                         || foeSelection.categoryTokens      != savedfoe.categoryTokens
+        return friendDiffers || foeDiffers
+    }
 
     // MARK: Live counters (written by DeviceActivityMonitor extension)
 
     var friendCount: Int = 0   // milestones × 15 min
-    var foulCount:   Int = 0
+    var foeCount:   Int = 0
 
     var friendMinutes: Int { friendCount * 15 }
-    var foulMinutes:   Int { foulCount   * 15 }
-
-    // MARK: Result page data (set before navigating to .result)
-
-    var pendingOutcome:       BattleOutcome = .draw
-    var pendingFriendMinutes: Int = 0
-    var pendingFoulMinutes:   Int = 0
+    var foeMinutes:   Int { foeCount   * 15 }
 
     // MARK: - Initialiser
 
@@ -95,22 +101,15 @@ final class AppState {
 
         // Restore saved selections.
         if let s = SharedStore.loadFriendSelection() { friendSelection = s }
-        if let s = SharedStore.loadFoulSelection()   { foulSelection   = s }
+        if let s = SharedStore.loadfoeSelection()   { foeSelection   = s }
 
         friendCount = SharedStore.thresholdCount
-        foulCount   = SharedStore.foulThresholdCount
+        foeCount   = SharedStore.foeThresholdCount
 
         hasActiveBattle = SharedStore.isMonitoring
 
-        // Check whether a completed duel is waiting to be shown.
-        if SharedStore.isMonitoring && needsResultPage {
-            prepareResult()
-            currentPage = .result
-            return
-        }
-
         // Don't interrupt an in-progress setup flow.
-        let setupPages: Set<AppPage> = [.selection, .selected, .confirmation]
+        let setupPages: Set<AppPage> = [.selection]
         if setupPages.contains(currentPage) && !SharedStore.isMonitoring {
             return
         }
@@ -118,8 +117,6 @@ final class AppState {
         // Otherwise restore the right page.
         if SharedStore.isMonitoring {
             currentPage = .main
-        } else if bothSelected {
-            currentPage = .selected
         } else {
             currentPage = .selection
         }
@@ -129,52 +126,9 @@ final class AppState {
     func syncCounters() {
         SharedStore.defaults.synchronize()
         let newFriend = SharedStore.thresholdCount
-        let newFoul   = SharedStore.foulThresholdCount
+        let newfoe   = SharedStore.foeThresholdCount
         if newFriend != friendCount { friendCount = newFriend }
-        if newFoul   != foulCount   { foulCount   = newFoul   }
-    }
-
-    // MARK: - Result page helpers
-
-    /// True when `lastResetDate` is earlier than today and there has been at
-    /// least one completed battle day.
-    private var needsResultPage: Bool {
-        let last = SharedStore.lastResetDate
-        guard !last.isEmpty else { return false }
-        return last < SharedStore.todayString
-    }
-
-    private func prepareResult() {
-        // The counts still in SharedStore are yesterday's final values.
-        pendingFriendMinutes = SharedStore.thresholdCount     * 15
-        pendingFoulMinutes   = SharedStore.foulThresholdCount * 15
-
-        if pendingFriendMinutes > pendingFoulMinutes {
-            pendingOutcome = .catWon
-        } else if pendingFoulMinutes > pendingFriendMinutes {
-            pendingOutcome = .foulWon
-        } else {
-            pendingOutcome = .draw
-        }
-    }
-
-    /// Called by ResultPageView when the user taps the CTA.
-    /// Saves result to history, resets counters for the new day, and
-    /// transitions to the main battle page.
-    func acknowledgeResult() {
-        // Save to history using yesterday's date.
-        let yesterday = SharedStore.yesterdayString
-        HistoryStore.saveResult(pendingOutcome, for: yesterday)
-
-        // Reset counters for the new day.
-        SharedStore.resetThresholdCount()
-        SharedStore.resetFoulThresholdCount()
-        SharedStore.lastResetDate = SharedStore.todayString
-
-        friendCount = 0
-        foulCount   = 0
-
-        currentPage = .main
+        if newfoe   != foeCount   { foeCount   = newfoe   }
     }
 
     // MARK: - Navigation helpers
@@ -185,24 +139,30 @@ final class AppState {
         currentPage = .main
     }
 
-    func goToSelection() {
-        currentPage = .selection
+    /// Stops the current session, resets today's counters, and restarts
+    /// monitoring with the current (possibly changed) selections.
+    /// Called when the user hits "continue" after changing selections
+    /// mid-battle. Does NOT clear history or wipe the selections.
+    func restartBattle() {
+        let center           = DeviceActivityCenter()
+        let friendActivity   = DeviceActivityName("friend.daily")
+        let foeActivity      = DeviceActivityName("foe.daily")
+        let snapshotActivity = DeviceActivityName("snapshot.daily")
+        center.stopMonitoring([friendActivity, foeActivity, snapshotActivity])
+
+        SharedStore.isMonitoring = false
+        SharedStore.resetThresholdCount()
+        SharedStore.resetfoeThresholdCount()
+        friendCount = 0
+        foeCount   = 0
+
+        startMonitoring()
+        hasActiveBattle = true
+        currentPage = .main
     }
 
-    func resetBattle() {
-        friendSelection = FamilyActivitySelection()
-        foulSelection   = FamilyActivitySelection()
-        SharedStore.removeFriendSelection()
-        SharedStore.removeFoulSelection()
-        SharedStore.resetThresholdCount()
-        SharedStore.resetFoulThresholdCount()
-        SharedStore.lastResetDate = ""
-        SharedStore.isMonitoring  = false
-        DeviceActivityCenter().stopMonitoring()
-        friendCount     = 0
-        foulCount       = 0
-        hasActiveBattle = false
-        currentPage     = .selection
+    func goToSelection() {
+        currentPage = .selection
     }
 
     // MARK: - Monitoring
@@ -210,14 +170,15 @@ final class AppState {
     private func startMonitoring() {
         guard !SharedStore.isMonitoring else { return }
 
-        let center         = DeviceActivityCenter()
-        let friendActivity = DeviceActivityName("mindful.daily")
-        let foulActivity   = DeviceActivityName("foul.daily")
+        let center           = DeviceActivityCenter()
+        let friendActivity   = DeviceActivityName("friend.daily")
+        let foeActivity      = DeviceActivityName("foe.daily")
+        let snapshotActivity = DeviceActivityName("snapshot.daily")
 
-        center.stopMonitoring([friendActivity, foulActivity])
+        center.stopMonitoring([friendActivity, foeActivity, snapshotActivity])
 
         SharedStore.saveFriendSelection(friendSelection)
-        SharedStore.saveFoulSelection(foulSelection)
+        SharedStore.savefoeSelection(foeSelection)
 
         let stepMinutes   = 15
         let maxMilestones = 8   // 8 × 15 min = 2 hours
@@ -225,6 +186,14 @@ final class AppState {
         let dailySchedule = DeviceActivitySchedule(
             intervalStart: DateComponents(hour: 0, minute: 0),
             intervalEnd:   DateComponents(hour: 23, minute: 59),
+            repeats: true
+        )
+
+        // Fires intervalDidEnd at 11:58 PM every day — the sole place
+        // where yesterday's battle result is snapshotted before midnight.
+        let snapshotSchedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: 0, minute: 0),
+            intervalEnd:   DateComponents(hour: 23, minute: 58),
             repeats: true
         )
 
@@ -239,12 +208,12 @@ final class AppState {
             )
         }
 
-        var foulEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+        var foeEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         for i in 1...maxMilestones {
-            foulEvents[DeviceActivityEvent.Name("foul_milestone_\(i)")] = DeviceActivityEvent(
-                applications:        foulSelection.applicationTokens,
-                categories:          foulSelection.categoryTokens,
-                webDomains:          foulSelection.webDomainTokens,
+            foeEvents[DeviceActivityEvent.Name("foe_milestone_\(i)")] = DeviceActivityEvent(
+                applications:        foeSelection.applicationTokens,
+                categories:          foeSelection.categoryTokens,
+                webDomains:          foeSelection.webDomainTokens,
                 threshold:           DateComponents(minute: i * stepMinutes),
                 includesPastActivity: true
             )
@@ -254,11 +223,11 @@ final class AppState {
             if hasFriendSelection {
                 try center.startMonitoring(friendActivity, during: dailySchedule, events: friendEvents)
             }
-            if hasFoulSelection {
-                try center.startMonitoring(foulActivity, during: dailySchedule, events: foulEvents)
+            if hasfoeSelection {
+                try center.startMonitoring(foeActivity, during: dailySchedule, events: foeEvents)
             }
-            SharedStore.isMonitoring  = true
-            SharedStore.lastResetDate = SharedStore.todayString
+            try center.startMonitoring(snapshotActivity, during: snapshotSchedule)
+            SharedStore.isMonitoring = true
         } catch {
             print("Failed to start monitoring: \(error)")
         }

@@ -19,14 +19,8 @@ struct pickerView: View {
                 switch state.currentPage {
                 case .selection:
                     SelectionPageView()
-                case .selected:
-                    SelectedPageView()
-                case .confirmation:
-                    ConfirmationPageView()
                 case .main:
                     MainPageView()
-                case .result:
-                    ResultPageView()
                 case .history:
                     HistoryPageView()
                 case .achievements:

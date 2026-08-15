@@ -14,15 +14,14 @@ import FamilyControls
 
 enum SharedStore {
     // Must match the App Group identifier added in Xcode → Signing & Capabilities.
-    static let suiteName = "group.jia.shen.quicato"
+    static let suiteName = "group.jia.shen.crinkle"
 
     enum Keys {
-        static let thresholdCount     = "thresholdCount"
-        static let foulThresholdCount = "foulThresholdCount"
-        static let friendSelection    = "friendSelection"
-        static let foulSelection      = "foulSelection"
-        static let isMonitoring       = "isMonitoring"
-        static let lastResetDate      = "lastResetDate"
+        static let thresholdCount    = "thresholdCount"
+        static let foeThresholdCount = "foeThresholdCount"
+        static let friendSelection   = "friendSelection"
+        static let foeSelection      = "foeSelection"
+        static let isMonitoring      = "isMonitoring"
     }
 
     // force-unwrap is safe: the suite name is a compile-time constant
@@ -44,15 +43,15 @@ enum SharedStore {
         thresholdCount = 0
     }
 
-    /// Foul app: number of 15-minute milestones reached today.
-    /// Written by the extension via "foul_milestone_N" event names.
-    static var foulThresholdCount: Int {
-        get { defaults.integer(forKey: Keys.foulThresholdCount) }
-        set { defaults.set(newValue, forKey: Keys.foulThresholdCount) }
+    /// foe app: number of 15-minute milestones reached today.
+    /// Written by the extension via "foe_milestone_N" event names.
+    static var foeThresholdCount: Int {
+        get { defaults.integer(forKey: Keys.foeThresholdCount) }
+        set { defaults.set(newValue, forKey: Keys.foeThresholdCount) }
     }
 
-    static func resetFoulThresholdCount() {
-        foulThresholdCount = 0
+    static func resetfoeThresholdCount() {
+        foeThresholdCount = 0
     }
 
     // MARK: - Monitoring flag
@@ -63,16 +62,6 @@ enum SharedStore {
     static var isMonitoring: Bool {
         get { defaults.bool(forKey: Keys.isMonitoring) }
         set { defaults.set(newValue, forKey: Keys.isMonitoring) }
-    }
-
-    // MARK: - Last reset date
-
-    /// The calendar day (yyyy-MM-dd) on which the counts were last reset.
-    /// Used by the monitor extension to distinguish a genuine new-day rollover
-    /// from an initial startMonitoring() call on the same day.
-    static var lastResetDate: String {
-        get { defaults.string(forKey: Keys.lastResetDate) ?? "" }
-        set { defaults.set(newValue, forKey: Keys.lastResetDate) }
     }
 
     static var todayString: String {
@@ -120,21 +109,21 @@ enum SharedStore {
         loadSelection(forKey: Keys.friendSelection)
     }
 
-    static func removeFriendSelection() {
-        removeSelection(forKey: Keys.friendSelection)
+//    static func removeFriendSelection() {
+//        removeSelection(forKey: Keys.friendSelection)
+//    }
+
+    // MARK: foe selection
+
+    static func savefoeSelection(_ selection: FamilyActivitySelection) {
+        saveSelection(selection, forKey: Keys.foeSelection)
     }
 
-    // MARK: Foul selection
-
-    static func saveFoulSelection(_ selection: FamilyActivitySelection) {
-        saveSelection(selection, forKey: Keys.foulSelection)
+    static func loadfoeSelection() -> FamilyActivitySelection? {
+        loadSelection(forKey: Keys.foeSelection)
     }
 
-    static func loadFoulSelection() -> FamilyActivitySelection? {
-        loadSelection(forKey: Keys.foulSelection)
-    }
-
-    static func removeFoulSelection() {
-        removeSelection(forKey: Keys.foulSelection)
-    }
+//    static func removefoeSelection() {
+//        removeSelection(forKey: Keys.foeSelection)
+//    }
 }

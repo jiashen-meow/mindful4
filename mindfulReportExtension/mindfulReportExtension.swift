@@ -21,8 +21,8 @@ struct mindfulReportExtension: DeviceActivityReportExtension {
             FriendAppReportView(friendAppReport: friendAppReport)
         }
         
-        foulAppReport { foulAppReport in
-            FoulAppReportView(foulAppReport: foulAppReport)
+        foeAppReport { foeAppReport in
+            FoeAppReportView(foeAppReport: foeAppReport)
         }
     }
 }

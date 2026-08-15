@@ -5,27 +5,44 @@
 //  Created by Jia Shen on 7/30/26.
 //
 //  Persists daily duel results and computes streaks.
-//  Stored as a JSON-encoded [String: String] in the shared UserDefaults suite
-//  so the monitor extension can write results at midnight too.
+//  Stored as JSON in the shared UserDefaults suite so the monitor extension
+//  can write results at midnight too.
 //
 
 import Foundation
+import FamilyControls
 
 enum HistoryStore {
 
-    // MARK: - Storage key
+    // MARK: - Storage keys
 
-    private static let resultsKey = "battleHistory"
+    private static let resultsKey    = "battleHistory"
+    private static let minutesKey    = "battleMinutes"
+    private static let selectionsKey = "battleSelections"
 
     // MARK: - Result type
 
     enum DayResult: String, Codable {
         case catWon  = "win"
-        case foulWon = "loss"
+        case foeWon = "loss"
         case draw    = "draw"
     }
 
-    // MARK: - Read / Write
+    // MARK: - Stored minutes record
+
+    struct DayMinutes: Codable {
+        var friendMinutes: Int
+        var foeMinutes:   Int
+    }
+
+    // MARK: - Stored selections record
+
+    struct DaySelections: Codable {
+        var friendSelection: FamilyActivitySelection
+        var foeSelection:   FamilyActivitySelection
+    }
+
+    // MARK: - Read / Write (results)
 
     /// All stored results as a date-string → result dictionary.
     static var allResults: [String: DayResult] {
@@ -47,20 +64,72 @@ enum HistoryStore {
         }
     }
 
-    /// Save a single day's result. Keyed by "yyyy-MM-dd".
-    static func saveResult(_ outcome: BattleOutcome, for dateString: String) {
-        var current = allResults
-        switch outcome {
-        case .catWon:  current[dateString] = .catWon
-        case .foulWon: current[dateString] = .foulWon
-        case .draw:    current[dateString] = .draw
+    /// All stored minute totals as a date-string → DayMinutes dictionary.
+    private static var allMinutes: [String: DayMinutes] {
+        get {
+            guard let data = SharedStore.defaults.data(forKey: minutesKey),
+                  let decoded = try? JSONDecoder().decode([String: DayMinutes].self, from: data)
+            else { return [:] }
+            return decoded
         }
-        allResults = current
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                SharedStore.defaults.set(data, forKey: minutesKey)
+            }
+        }
+    }
+
+    /// All stored selections as a date-string → DaySelections dictionary.
+    private static var allSelections: [String: DaySelections] {
+        get {
+            guard let data = SharedStore.defaults.data(forKey: selectionsKey),
+                  let decoded = try? JSONDecoder().decode([String: DaySelections].self, from: data)
+            else { return [:] }
+            return decoded
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                SharedStore.defaults.set(data, forKey: selectionsKey)
+            }
+        }
+    }
+
+    /// Save a single day's result, minute totals, and app selections. Keyed by "yyyy-MM-dd".
+    static func saveResult(_ outcome: BattleOutcome, for dateString: String,
+                           friendMinutes: Int, foeMinutes: Int,
+                           friendSelection: FamilyActivitySelection,
+                           foeSelection:   FamilyActivitySelection) {
+        var currentResults = allResults
+        switch outcome {
+        case .catWon:  currentResults[dateString] = .catWon
+        case .foeWon: currentResults[dateString] = .foeWon
+        case .draw:    currentResults[dateString] = .draw
+        }
+        allResults = currentResults
+
+        var currentMinutes = allMinutes
+        currentMinutes[dateString] = DayMinutes(friendMinutes: friendMinutes, foeMinutes: foeMinutes)
+        allMinutes = currentMinutes
+
+        var currentSelections = allSelections
+        currentSelections[dateString] = DaySelections(friendSelection: friendSelection,
+                                                      foeSelection:   foeSelection)
+        allSelections = currentSelections
     }
 
     /// Result for a specific date string, or nil if no battle that day.
     static func result(for dateString: String) -> DayResult? {
         allResults[dateString]
+    }
+
+    /// Minute totals for a specific date string, or nil if not recorded.
+    static func minutes(for dateString: String) -> DayMinutes? {
+        allMinutes[dateString]
+    }
+
+    /// App selections for a specific date string, or nil if not recorded.
+    static func selections(for dateString: String) -> DaySelections? {
+        allSelections[dateString]
     }
 
     // MARK: - Streak

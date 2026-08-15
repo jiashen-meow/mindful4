@@ -13,13 +13,13 @@ import SwiftUI
 struct MindfulEntry: TimelineEntry {
     let date: Date
     let friendCount: Int
-    let foulCount: Int
+    let foeCount: Int
 
     enum WidgetState { case winning, losing, draw }
 
     var widgetState: WidgetState {
-        if friendCount > foulCount  { return .winning }
-        if foulCount   > friendCount { return .losing  }
+        if friendCount > foeCount  { return .winning }
+        if foeCount   > friendCount { return .losing  }
         return .draw
     }
 }
@@ -29,17 +29,17 @@ struct MindfulEntry: TimelineEntry {
 struct MindfulProvider: TimelineProvider {
 
     private func currentEntry() -> MindfulEntry {
-        let defaults = UserDefaults(suiteName: "group.jia.shen.quicato")
+        let defaults = UserDefaults(suiteName: "group.jia.shen.crinkle")
             ?? UserDefaults.standard
         return MindfulEntry(
             date: .now,
             friendCount: defaults.integer(forKey: "thresholdCount"),
-            foulCount:   defaults.integer(forKey: "foulThresholdCount")
+            foeCount:   defaults.integer(forKey: "foeThresholdCount")
         )
     }
 
     func placeholder(in context: Context) -> MindfulEntry {
-        MindfulEntry(date: .now, friendCount: 4, foulCount: 2)
+        MindfulEntry(date: .now, friendCount: 4, foeCount: 2)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MindfulEntry) -> Void) {
@@ -84,7 +84,7 @@ struct mindful3WidgetEntryView: View {
             }
         }
         .containerBackground(for: .widget) {
-            Color.white
+            Color(red: 0xFA / 255.0, green: 0xF6 / 255.0, blue: 0xEE / 255.0)
         }
     }
 }
@@ -109,7 +109,7 @@ struct mindful3Widget: Widget {
 #Preview(as: .systemMedium) {
     mindful3Widget()
 } timeline: {
-    MindfulEntry(date: .now, friendCount: 5, foulCount: 2) // winning
-//    MindfulEntry(date: .now, friendCount: 1, foulCount: 6) // losing
-//    MindfulEntry(date: .now, friendCount: 3, foulCount: 3) // draw
+    MindfulEntry(date: .now, friendCount: 5, foeCount: 2) // winning
+//    MindfulEntry(date: .now, friendCount: 1, foeCount: 6) // losing
+//    MindfulEntry(date: .now, friendCount: 3, foeCount: 3) // draw
 }

@@ -5,10 +5,13 @@
 //  Created by Jia Shen on 7/30/26.
 //
 //  Monthly calendar view. Win days show a historyStamp on the date number.
+//  Tap any day with a recorded result to see the full duel breakdown.
 //  Users can page backward/forward through months.
 //
 
 import SwiftUI
+import FamilyControls
+internal import ManagedSettings
 
 struct HistoryPageView: View {
 
@@ -16,6 +19,9 @@ struct HistoryPageView: View {
 
     @State private var displayYear:  Int = Calendar.current.component(.year,  from: Date())
     @State private var displayMonth: Int = Calendar.current.component(.month, from: Date())
+
+    // Sheet state
+    @State private var selectedResult: SelectedDayResult? = nil
 
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     private let weekdaySymbols: [String] = {
@@ -27,7 +33,7 @@ struct HistoryPageView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
 
-            Color(red: 250/255, green: 246/255, blue: 238/255)
+            Color.appBackground
                 .ignoresSafeArea()
 
 
@@ -40,52 +46,27 @@ struct HistoryPageView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.primary)
-                        
                         Text("go back")
-                            .font(.appCaption)
+                            .appCaption
                     }
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 8)
                 }
 
-//                Spacer().frame(height: 60)
-
-                // ── Month navigation header ───────────────────────────────
-                HStack {
-                    Button {
-                        stepMonth(by: -1)
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.primary)
-                    }
-
-                    Spacer()
-
-                    Text(monthYearString)
-                        .font(.appHeadline)
-                        .foregroundStyle(.primary)
-
-                    Spacer()
-
-                    Button {
-                        stepMonth(by: 1)
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.primary)
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                Spacer().frame(height: 24)
+                // ── Month header ──────────────────────────────────────────
+                Text(monthYearString)
+                    .appTitle
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
 
                 // ── Weekday labels ────────────────────────────────────────
                 LazyVGrid(columns: columns, spacing: 0) {
                     ForEach(weekdaySymbols.indices, id: \.self) { index in
                         Text(weekdaySymbols[index])
-                            .font(.appCaption)
+                            .appCaption
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity)
                             .padding(.bottom, 8)
@@ -94,42 +75,68 @@ struct HistoryPageView: View {
                 .padding(.horizontal, 16)
 
                 // ── Day grid ──────────────────────────────────────────────
-                let winDates = HistoryStore.winDates(in: displayYear, month: displayMonth)
-                let cells    = buildCells()
+                let allResults = HistoryStore.allResults
+                let winDates   = HistoryStore.winDates(in: displayYear, month: displayMonth)
+                let cells      = buildCells()
 
-                LazyVGrid(columns: columns, spacing: 4) {
+                LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(cells, id: \.id) { cell in
+                        let hasResult = cell.day > 0 && allResults[cell.dateString] != nil
                         dayCell(cell, isWin: winDates.contains(cell.dateString))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                guard hasResult else { return }
+                                selectedResult = makeSelectedResult(for: cell.dateString)
+                            }
+                            .opacity(hasResult ? 1.0 : (cell.day > 0 ? 0.5 : 1.0))
                     }
                 }
                 .padding(.horizontal, 16)
 
-                Spacer().frame(height: 16)
+                Spacer().frame(height: 24)
 
-                Spacer()
-
-                // ── Silhouette & quote ────────────────────────────────────
-                ZStack(alignment: .center) {
-
-                    GeometryReader { proxy in
-                        Image("historySilhouette")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: proxy.size.width / 3)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 48)
-                    }
-                    
-                    Text("Quicato defending the world from\nmundane things.\nHelp her along her journey.")
-                        .font(.appCaption)
+                // ── Month navigation ──────────────────────────────────────
+                HStack {
+                    Button {
+                        stepMonth(by: -1)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(previousMonthName)
+                                .appCaption
+                        }
                         .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 48)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        stepMonth(by: 1)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(nextMonthName)
+                                .appCaption
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 }
+                .padding(.horizontal, 24)
             }
             .tint(.primary)
 
+        }
+        .sheet(item: $selectedResult) { item in
+            ResultPageView(
+                outcome:       item.outcome,
+                friendMinutes: item.friendMinutes,
+                foeMinutes:   item.foeMinutes,
+                dateString:    item.id
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -148,12 +155,51 @@ struct HistoryPageView: View {
                         .frame(width: 36, height: 36)
                 } else {
                     Text("\(cell.day)")
-                        .font(.appCaption)
+                        .appCaption
                         .foregroundStyle(.primary)
                 }
             }
             .frame(height: 40)
         }
+    }
+
+    // MARK: - Sheet model
+
+    private struct SelectedDayResult: Identifiable {
+        let id: String          // dateString
+        let outcome:       BattleOutcome
+        let friendMinutes: Int
+        let foeMinutes:   Int
+        let friendTokens:  Set<ApplicationToken>
+        let foeTokens:    Set<ApplicationToken>
+    }
+
+    private func makeSelectedResult(for dateString: String) -> SelectedDayResult? {
+        guard let dayResult = HistoryStore.result(for: dateString) else { return nil }
+
+        let outcome: BattleOutcome
+        switch dayResult {
+        case .catWon:  outcome = .catWon
+        case .foeWon: outcome = .foeWon
+        case .draw:    outcome = .draw
+        }
+
+        let savedMinutes    = HistoryStore.minutes(for: dateString)
+        let savedSelections = HistoryStore.selections(for: dateString)
+
+        // Prefer the historically saved selection; fall back to the current
+        // live selection for duels recorded before this version.
+        let friendSel = savedSelections?.friendSelection ?? state.friendSelection
+        let foeSel   = savedSelections?.foeSelection   ?? state.foeSelection
+
+        return SelectedDayResult(
+            id:            dateString,
+            outcome:       outcome,
+            friendMinutes: savedMinutes?.friendMinutes ?? 0,
+            foeMinutes:   savedMinutes?.foeMinutes   ?? 0,
+            friendTokens:  friendSel.applicationTokens,
+            foeTokens:    foeSel.applicationTokens
+        )
     }
 
     // MARK: - Calendar math
@@ -210,6 +256,20 @@ struct HistoryPageView: View {
         guard let date = Calendar.current.date(from: comps) else { return "" }
         let fmt = DateFormatter()
         fmt.dateFormat = "MMMM yyyy"
+        return fmt.string(from: date)
+    }
+
+    private var previousMonthName: String { adjacentMonthName(delta: -1) }
+    private var nextMonthName:     String { adjacentMonthName(delta:  1) }
+
+    private func adjacentMonthName(delta: Int) -> String {
+        var comps   = DateComponents()
+        comps.year  = displayYear
+        comps.month = displayMonth + delta
+        comps.day   = 1
+        guard let date = Calendar.current.date(from: comps) else { return "" }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MMMM"
         return fmt.string(from: date)
     }
 

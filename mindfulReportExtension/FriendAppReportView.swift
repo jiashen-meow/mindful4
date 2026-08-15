@@ -25,8 +25,8 @@ struct FriendAppReport {
     let friendApp: AppDeviceActivity?
 }
 
-struct FoulAppReport {
-    let foulApp: AppDeviceActivity?
+struct FoeAppReport {
+    let foeApp: AppDeviceActivity?
 }
 
 struct FriendAppReportView: View {
@@ -39,12 +39,12 @@ struct FriendAppReportView: View {
     }
 }
 
-struct FoulAppReportView: View {
-    var foulAppReport: FoulAppReport
+struct FoeAppReportView: View {
+    var foeAppReport: FoeAppReport
     
     var body: some View {
         VStack(alignment: .center) {
-            FoulCardView(app: foulAppReport.foulApp)
+            foeCardView(app: foeAppReport.foeApp)
         }
     }
 }
@@ -68,7 +68,7 @@ struct CardView: View {
     }
 }
 
-struct FoulCardView: View {
+struct foeCardView: View {
     let app: AppDeviceActivity?
     
     var body: some View {

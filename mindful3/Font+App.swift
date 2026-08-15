@@ -30,7 +30,8 @@ import SwiftUI
 
 extension Font {
 
-    private static let fontName = "GloriaHallelujah"
+//    private static let fontName = "GloriaHallelujah"
+    private static let fontName = "Schoolbell"
 
     // MARK: - Named sizes matching the app's type scale
 
@@ -41,16 +42,21 @@ extension Font {
 
     /// Section / page headings.
     static var appHeadline: Font {
-        .custom(fontName, fixedSize: 17)
+        .custom(fontName, fixedSize: 20)
     }
 
     /// Body copy.
     static var appBody: Font {
-        .custom(fontName, fixedSize: 15)
+        .custom(fontName, fixedSize: 18)
     }
 
     /// Secondary labels, captions.
     static var appCaption: Font {
+        .custom(fontName, fixedSize: 15)
+    }
+    
+    /// Third tier labels, captions.
+    static var appLabel: Font {
         .custom(fontName, fixedSize: 12)
     }
 
@@ -64,9 +70,28 @@ extension Font {
 
 // MARK: - View modifier shorthand
 
-extension View {
-    /// Applies Gloria Hallelujah at the given size (defaults to body).
-    func appFont(size: CGFloat? = nil) -> some View {
-        self.font(.app(size: size ?? 15))
+extension Text {
+    func appFont(size: CGFloat? = nil) -> Text {
+        self.font(.app(size: size ?? 15)).tracking(1.0)
+    }
+
+    var appTitle: Text    { self.font(.appTitle).tracking(1.0) }
+    var appHeadline: Text { self.font(.appHeadline).tracking(1.0) }
+    var appBody: Text     { self.font(.appBody).tracking(1.0) }
+    var appCaption: Text  { self.font(.appCaption).tracking(0.5) }
+    var appLabel: Text  { self.font(.appLabel).tracking(0.5) }
+}
+
+// MARK: - App background color
+
+extension Color {
+    /// Warm off-white in light mode (#FAF6EE), dark brown in dark mode (#1B120D).
+    /// Use this as the page background across all screens.
+    static var appBackground: Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0x46 / 255.0, green: 0x33 / 255.0, blue: 0x2D / 255.0, alpha: 1)
+                : UIColor(red: 0xFA / 255.0, green: 0xF6 / 255.0, blue: 0xEE / 255.0, alpha: 1)
+        })
     }
 }

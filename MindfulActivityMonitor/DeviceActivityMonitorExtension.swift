@@ -9,39 +9,30 @@ import DeviceActivity
 import Foundation
 import WidgetKit
 
-private let sharedSuiteName = "group.jia.shen.quicato"
+private let sharedSuiteName = "group.jia.shen.crinkle"
 
 // Keys mirroring SharedStore.Keys — duplicated so the extension
 // doesn't need to import the main app target.
 // Suite name must match SharedStore.suiteName and the App Group entitlement in both targets.
 private enum ExtensionKeys {
     static let thresholdCount     = "thresholdCount"
-    static let foulThresholdCount = "foulThresholdCount"
-    static let lastResetDate      = "lastResetDate"
+    static let foeThresholdCount  = "foeThresholdCount"
     static let battleHistory      = "battleHistory"
+    static let battleMinutes      = "battleMinutes"
 }
 
 // MARK: - Midnight result persistence
 
-/// Reads yesterday's counts and writes the battle result to the history dictionary
-/// before the counts are reset. Mirrors HistoryStore logic without importing the main target.
+/// Reads yesterday's counts and writes the battle result and minute totals
+/// to their respective history dictionaries before the counts are reset.
+/// Mirrors HistoryStore logic without importing the main target.
 private func saveYesterdayResult(using defaults: UserDefaults) {
-    let friendCount = defaults.integer(forKey: ExtensionKeys.thresholdCount)
-    let foulCount   = defaults.integer(forKey: ExtensionKeys.foulThresholdCount)
-
-    let result: String
-    if friendCount > foulCount   { result = "win"  }
-    else if foulCount > friendCount { result = "loss" }
-    else                           { result = "draw" }
-
     let fmt = DateFormatter()
     fmt.dateFormat = "yyyy-MM-dd"
-    // At midnight the "previous" day is still "yesterday" relative to the new day.
-    let yesterday = fmt.string(
-        from: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
-    )
+    // intervalDidEnd fires at 11:58 PM, so Date() is still the day being recorded.
+    let yesterday = fmt.string(from: Date())
 
-    // Read → mutate → write the history dict.
+    // ── Load existing history ─────────────────────────────────────────────
     var history: [String: String]
     if let data = defaults.data(forKey: ExtensionKeys.battleHistory),
        let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
@@ -50,10 +41,52 @@ private func saveYesterdayResult(using defaults: UserDefaults) {
         history = [:]
     }
 
-    history[yesterday] = result
+    // Idempotency guard: if a result for yesterday already exists, don't
+    // overwrite it. snapshot.daily fires once per day so this shouldn't
+    // normally trigger, but guards against edge cases (e.g. the user
+    // restarting monitoring after 11:58 PM).
+    guard history[yesterday] == nil else {
+        print("saveYesterdayResult: result for \(yesterday) already saved, skipping")
+        return
+    }
 
+    // Read both counts before either reset has happened.
+    let friendCount = defaults.integer(forKey: ExtensionKeys.thresholdCount)
+    let foeCount   = defaults.integer(forKey: ExtensionKeys.foeThresholdCount)
+
+    print("saveYesterdayResult: friendCount=\(friendCount), foeCount=\(foeCount) for \(yesterday)")
+
+    let result: String
+    if friendCount > foeCount      { result = "win"  }
+    else if foeCount > friendCount { result = "loss" }
+    else                            { result = "draw" }
+
+    // ── Persist result ────────────────────────────────────────────────────
+    history[yesterday] = result
     if let encoded = try? JSONEncoder().encode(history) {
         defaults.set(encoded, forKey: ExtensionKeys.battleHistory)
+    }
+
+    // ── Persist minute totals ─────────────────────────────────────────────
+    // Each threshold count represents one 15-minute milestone, so multiply by 15.
+    struct DayMinutes: Codable {
+        var friendMinutes: Int
+        var foeMinutes:   Int
+    }
+
+    var minutes: [String: DayMinutes]
+    if let data = defaults.data(forKey: ExtensionKeys.battleMinutes),
+       let decoded = try? JSONDecoder().decode([String: DayMinutes].self, from: data) {
+        minutes = decoded
+    } else {
+        minutes = [:]
+    }
+    minutes[yesterday] = DayMinutes(
+        friendMinutes: friendCount * 15,
+        foeMinutes:   foeCount   * 15
+    )
+    if let encoded = try? JSONEncoder().encode(minutes) {
+        defaults.set(encoded, forKey: ExtensionKeys.battleMinutes)
     }
 }
 
@@ -71,54 +104,55 @@ private var sharedDefaults: UserDefaults {
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalDidStart(for activity: DeviceActivityName) {
-        let today     = todayString
-        let lastReset = sharedDefaults.string(forKey: ExtensionKeys.lastResetDate) ?? ""
-
-        guard today != lastReset else {
-            print("Interval started: \(activity.rawValue) — same day as last reset, skipping count reset")
-            return
-        }
-
-        // This is a genuine new-day rollover. Save yesterday's result BEFORE
-        // resetting counts so the result page has the right numbers.
-        // Only do it once (on the first of the two activities to fire).
-        if activity.rawValue == "mindful.daily" {
-            saveYesterdayResult(using: sharedDefaults)
-        }
+        let today = todayString
 
         switch activity.rawValue {
-        case "mindful.daily":
+        case "friend.daily":
             sharedDefaults.set(0, forKey: ExtensionKeys.thresholdCount)
-            sharedDefaults.set(today, forKey: ExtensionKeys.lastResetDate)
-            print("Interval started: mindful.daily — friend count reset to 0 (new day: \(today))")
-        case "foul.daily":
-            sharedDefaults.set(0, forKey: ExtensionKeys.foulThresholdCount)
-            print("Interval started: foul.daily — foul count reset to 0 (new day: \(today))")
+            print("Interval started: friend.daily — friend count reset to 0 (day: \(today))")
+        case "foe.daily":
+            sharedDefaults.set(0, forKey: ExtensionKeys.foeThresholdCount)
+            print("Interval started: foe.daily — foe count reset to 0 (day: \(today))")
         default:
             break
         }
     }
 
     override func intervalDidEnd(for activity: DeviceActivityName) {
+        // snapshot.daily ends at 11:58 PM — the sole authoritative place to
+        // capture the day's result while counts are still intact.
+        if activity.rawValue == "snapshot.daily" {
+            saveYesterdayResult(using: sharedDefaults)
+
+            // Append a timestamped entry to the debug log so Store Debug
+            // confirms the extension is alive and fired at midnight.
+            let ts = ISO8601DateFormatter().string(from: Date())
+            let logKey = "extensionDebugLog"
+            var log = sharedDefaults.stringArray(forKey: logKey) ?? []
+            log.append("[\(ts)] intervalDidEnd: snapshot.daily")
+            // Keep only the 20 most-recent entries so the array stays small.
+            if log.count > 20 { log = Array(log.suffix(20)) }
+            sharedDefaults.set(log, forKey: logKey)
+        }
         print("Interval ended: \(activity.rawValue)")
     }
 
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         // Parse the milestone index out of the event name:
         //   "milestone_3"      → friend count = 3
-        //   "foul_milestone_3" → foul  count = 3
+        //   "foe_milestone_3" → foe  count = 3
         //
         // Writing the index directly (not += 1) means a delayed or out-of-order
         // delivery self-corrects on the very next milestone.
         let raw = event.rawValue
 
-        if raw.hasPrefix("foul_milestone_") {
+        if raw.hasPrefix("foe_milestone_") {
             let count = Int(raw.split(separator: "_").last ?? "0") ?? 0
-            let current = sharedDefaults.integer(forKey: ExtensionKeys.foulThresholdCount)
+            let current = sharedDefaults.integer(forKey: ExtensionKeys.foeThresholdCount)
             if count > current {
-                sharedDefaults.set(count, forKey: ExtensionKeys.foulThresholdCount)
+                sharedDefaults.set(count, forKey: ExtensionKeys.foeThresholdCount)
             }
-            print("Foul milestone reached — \(raw), foul count = \(count), current = \(current)")
+            print("foe milestone reached — \(raw), foe count = \(count), current = \(current)")
         } else if raw.hasPrefix("milestone_") {
             let count = Int(raw.split(separator: "_").last ?? "0") ?? 0
             let current = sharedDefaults.integer(forKey: ExtensionKeys.thresholdCount)
