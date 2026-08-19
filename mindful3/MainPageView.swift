@@ -54,6 +54,11 @@ struct MainPageView: View {
     @State private var foeReportFilter:   DeviceActivityFilter? = nil
     @State private var showingDebugStore  = false
 
+    // Startup polling: fires every 5 s for the first 30 s after the view
+    // appears, catching the delayed `includesPastActivity` callback from the
+    // extension that hasn't launched yet when monitoring first starts.
+    @State private var startupTimer: Timer? = nil
+
     // MARK: - Computed helpers
 
     private var battleState: BattleState {
@@ -187,13 +192,32 @@ struct MainPageView: View {
             }
         }
         // ── Counter sync ──────────────────────────────────────────────────
+        .onAppear {
+            // Sync immediately when the view appears (e.g. returning from
+            // selection page after startBattle), then poll briefly in case
+            // the extension's includesPastActivity delivery is delayed.
+            state.syncCounters()
+            startupTimer?.invalidate()
+            var ticks = 0
+            startupTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { timer in
+                state.syncCounters()
+                ticks += 1
+                if ticks >= 6 { // 6 × 5 s = 30 s total
+                    timer.invalidate()
+                    startupTimer = nil
+                }
+            }
+        }
+        .onDisappear {
+            startupTimer?.invalidate()
+            startupTimer = nil
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             state.syncCounters()
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: UserDefaults.didChangeNotification,
-            object: SharedStore.defaults)
-        ) { _ in
+        // Darwin notifications cross process boundaries, so this fires
+        // immediately when the extension writes a new milestone count.
+        .onReceive(NotificationCenter.default.publisher(for: .countersDidChange)) { _ in
             state.syncCounters()
         }
     }

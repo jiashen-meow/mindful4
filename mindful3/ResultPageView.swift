@@ -52,21 +52,23 @@ struct ResultPageView: View {
                 Spacer().frame(height: 28)
 
                 // ── App rows ──────────────────────────────────────────────
-                VStack(spacing: 12) {
-                    appRow(
-                        label:     "friend apps",
-                        minutes:   friendMinutes,
-                        timeColor: friendTimeColor
-                    )
-                    appRow(
-                        label:     "foe apps",
-                        minutes:   foeMinutes,
-                        timeColor: foeTimeColor
-                    )
-                }
-                .padding(.horizontal, 32)
+                if outcome != .empty {
+                    VStack(spacing: 12) {
+                        appRow(
+                            label:     "friend apps",
+                            minutes:   friendMinutes,
+                            timeColor: friendTimeColor
+                        )
+                        appRow(
+                            label:     "foe apps",
+                            minutes:   foeMinutes,
+                            timeColor: foeTimeColor
+                        )
+                    }
+                    .padding(.horizontal, 32)
 
-                Spacer().frame(height: 28)
+                    Spacer().frame(height: 28)
+                }
 
                 // ── Info box ──────────────────────────────────────────────
                 infoBox
@@ -93,34 +95,36 @@ struct ResultPageView: View {
     private var mascotAsset: String {
         switch outcome {
         case .catWon:  return "cat-proud"
-        case .foeWon: return "cat-frightened"
+        case .foeWon:  return "cat-frightened"
         case .draw:    return "cat-speechless"
+        case .empty:   return "cat-empty"   // TODO: link real asset
         }
     }
 
     private var titleText: String {
         switch outcome {
         case .catWon:  return "caaat wins!"
-        case .foeWon: return "the foe wins…"
+        case .foeWon:  return "the foe wins…"
         case .draw:    return "it's a draw…"
+        case .empty:   return "where have you been?"
         }
     }
 
-    // Friend time is green when cat won, red when foe won, neutral on draw.
+    // Friend time is green when cat won, red when foe won, neutral otherwise.
     private var friendTimeColor: Color {
         switch outcome {
-        case .catWon:  return Color(red: 0.18, green: 0.62, blue: 0.35)   // green
-        case .foeWon: return Color(red: 0.80, green: 0.22, blue: 0.22)   // red
-        case .draw:    return .primary
+        case .catWon:  return Color(red: 0.18, green: 0.62, blue: 0.35)
+        case .foeWon:  return Color(red: 0.80, green: 0.22, blue: 0.22)
+        case .draw, .empty: return .primary
         }
     }
 
-    // foe time is red when cat won, green when foe won, neutral on draw.
+    // Foe time is red when cat won, green when foe won, neutral otherwise.
     private var foeTimeColor: Color {
         switch outcome {
-        case .catWon:  return Color(red: 0.80, green: 0.22, blue: 0.22)   // red
-        case .foeWon: return Color(red: 0.18, green: 0.62, blue: 0.35)   // green
-        case .draw:    return .primary
+        case .catWon:  return Color(red: 0.80, green: 0.22, blue: 0.22)
+        case .foeWon:  return Color(red: 0.18, green: 0.62, blue: 0.35)
+        case .draw, .empty: return .primary
         }
     }
 
@@ -186,10 +190,10 @@ struct ResultPageView: View {
 
         case .foeWon:
             VStack(spacing: 4) {
-                Text("\"i'll do better tomorrow…\"")
+                Text("\"you can do better tomorrow, human\"")
                     .appBody
                     .foregroundStyle(.primary)
-                Text("— caaat, probably")
+                Text("— caaat believes in ya")
                     .appCaption
                     .foregroundStyle(.secondary)
             }
@@ -211,6 +215,16 @@ struct ResultPageView: View {
                         .appCaption
                         .foregroundStyle(.secondary)
                 }
+            }
+
+        case .empty:
+            VStack(spacing: 4) {
+                Text("no data for this day")
+                    .appBody
+                    .foregroundStyle(.primary)
+                Text("caaat couldn't track the battle")
+                    .appCaption
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -249,5 +263,14 @@ struct ResultPageView: View {
         friendMinutes: 30,
         foeMinutes:   30,
         dateString:    "2026-07-25"
+    )
+}
+
+#Preview("Empty") {
+    ResultPageView(
+        outcome:       .empty,
+        friendMinutes: 0,
+        foeMinutes:    0,
+        dateString:    "2026-07-24"
     )
 }

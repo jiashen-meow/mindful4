@@ -93,6 +93,7 @@ private func saveYesterdayResult(using defaults: UserDefaults) {
 private var todayString: String {
     let fmt = DateFormatter()
     fmt.dateFormat = "yyyy-MM-dd"
+    fmt.timeZone = .current   // always use the device's local timezone
     return fmt.string(from: Date())
 }
 
@@ -104,15 +105,26 @@ private var sharedDefaults: UserDefaults {
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func intervalDidStart(for activity: DeviceActivityName) {
-        let today = todayString
+        let today  = todayString
+        let name   = activity.rawValue
 
-        switch activity.rawValue {
+        guard name == "friend.daily" || name == "foe.daily" else { return }
+
+        // ── Debug log ─────────────────────────────────────────────────────
+        let ts     = ISO8601DateFormatter().string(from: Date())
+        let logKey = "extensionDebugLog"
+        var log    = sharedDefaults.stringArray(forKey: logKey) ?? []
+        log.append("[\(ts)] intervalDidStart: \(name) (day: \(today))")
+        if log.count > 20 { log = Array(log.suffix(20)) }
+        sharedDefaults.set(log, forKey: logKey)
+
+        switch name {
         case "friend.daily":
             sharedDefaults.set(0, forKey: ExtensionKeys.thresholdCount)
-            print("Interval started: friend.daily — friend count reset to 0 (day: \(today))")
+            print("intervalDidStart: friend.daily — friendCount reset to 0 (day: \(today))")
         case "foe.daily":
             sharedDefaults.set(0, forKey: ExtensionKeys.foeThresholdCount)
-            print("Interval started: foe.daily — foe count reset to 0 (day: \(today))")
+            print("intervalDidStart: foe.daily — foeCount reset to 0 (day: \(today))")
         default:
             break
         }
@@ -139,30 +151,39 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         // Parse the milestone index out of the event name:
-        //   "milestone_3"      → friend count = 3
-        //   "foe_milestone_3" → foe  count = 3
+        //   "milestone_3"     → friend count = 3
+        //   "foe_milestone_3" → foe count = 3
         //
-        // Writing the index directly (not += 1) means a delayed or out-of-order
+        // Writing the index directly (not += 1) means delayed or out-of-order
         // delivery self-corrects on the very next milestone.
         let raw = event.rawValue
 
         if raw.hasPrefix("foe_milestone_") {
-            let count = Int(raw.split(separator: "_").last ?? "0") ?? 0
+            let count   = Int(raw.split(separator: "_").last ?? "0") ?? 0
             let current = sharedDefaults.integer(forKey: ExtensionKeys.foeThresholdCount)
             if count > current {
                 sharedDefaults.set(count, forKey: ExtensionKeys.foeThresholdCount)
             }
             print("foe milestone reached — \(raw), foe count = \(count), current = \(current)")
         } else if raw.hasPrefix("milestone_") {
-            let count = Int(raw.split(separator: "_").last ?? "0") ?? 0
+            let count   = Int(raw.split(separator: "_").last ?? "0") ?? 0
             let current = sharedDefaults.integer(forKey: ExtensionKeys.thresholdCount)
             if count > current {
                 sharedDefaults.set(count, forKey: ExtensionKeys.thresholdCount)
             }
-            print("Friend milestone reached — \(raw), friend count = \(count), current = \(current)")
+            print("friend milestone reached — \(raw), friend count = \(count), current = \(current)")
         }
-        
+
         WidgetCenter.shared.reloadAllTimelines()
+
+        // Signal the main app (a separate process) that new counts are ready.
+        // UserDefaults.didChangeNotification doesn't cross process boundaries,
+        // but Darwin notifications do.
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName("group.jia.shen.crinkle.countersDidChange" as CFString),
+            nil, nil, true
+        )
     }
 
     override func intervalWillStartWarning(for activity: DeviceActivityName) {

@@ -12,6 +12,11 @@ import SwiftUI
 import FamilyControls
 import DeviceActivity
 
+// Darwin notification name — must match the string posted by the extension.
+extension Notification.Name {
+    static let countersDidChange = Notification.Name("group.jia.shen.crinkle.countersDidChange")
+}
+
 // MARK: - App flow pages
 
 enum AppPage {
@@ -34,6 +39,9 @@ enum BattleOutcome {
     case catWon
     case foeWon
     case draw
+    /// The extension never finalized this day — phone was off or the extension
+    /// was suspended. No time data exists. Distinct from a 0:0 draw.
+    case empty
 }
 
 // MARK: - AppState
@@ -90,6 +98,29 @@ final class AppState {
 
     init() {
         reload()
+        registerDarwinObserver()
+    }
+
+    // MARK: - Darwin cross-process observer
+
+    /// Listens for the Darwin notification posted by the extension after each
+    /// milestone write, then re-posts it on NotificationCenter so any SwiftUI
+    /// view can observe it with a normal `.onReceive`.
+    private func registerDarwinObserver() {
+        CFNotificationCenterAddObserver(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            nil,
+            { _, _, _, _, _ in
+                // We're on an arbitrary thread here — hop to main before
+                // mutating @Observable state or posting to NotificationCenter.
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .countersDidChange, object: nil)
+                }
+            },
+            "group.jia.shen.crinkle.countersDidChange" as CFString,
+            nil,
+            .deliverImmediately
+        )
     }
 
     // MARK: - Public interface
@@ -144,15 +175,17 @@ final class AppState {
     /// Called when the user hits "continue" after changing selections
     /// mid-battle. Does NOT clear history or wipe the selections.
     func restartBattle() {
-        let center           = DeviceActivityCenter()
-        let friendActivity   = DeviceActivityName("friend.daily")
-        let foeActivity      = DeviceActivityName("foe.daily")
-        let snapshotActivity = DeviceActivityName("snapshot.daily")
-        center.stopMonitoring([friendActivity, foeActivity, snapshotActivity])
+        let center         = DeviceActivityCenter()
+        let friendActivity = DeviceActivityName("friend.daily")
+        let foeActivity    = DeviceActivityName("foe.daily")
+        center.stopMonitoring([friendActivity, foeActivity])
 
         SharedStore.isMonitoring = false
         SharedStore.resetThresholdCount()
         SharedStore.resetfoeThresholdCount()
+        // Reset the anchor date so the extension's rollover check starts
+        // fresh from today, not the original session start.
+        SharedStore.lastResetDate = SharedStore.todayString
         friendCount = 0
         foeCount   = 0
 
@@ -170,12 +203,11 @@ final class AppState {
     private func startMonitoring() {
         guard !SharedStore.isMonitoring else { return }
 
-        let center           = DeviceActivityCenter()
-        let friendActivity   = DeviceActivityName("friend.daily")
-        let foeActivity      = DeviceActivityName("foe.daily")
-        let snapshotActivity = DeviceActivityName("snapshot.daily")
+        let center         = DeviceActivityCenter()
+        let friendActivity = DeviceActivityName("friend.daily")
+        let foeActivity    = DeviceActivityName("foe.daily")
 
-        center.stopMonitoring([friendActivity, foeActivity, snapshotActivity])
+        center.stopMonitoring([friendActivity, foeActivity])
 
         SharedStore.saveFriendSelection(friendSelection)
         SharedStore.savefoeSelection(foeSelection)
@@ -183,17 +215,12 @@ final class AppState {
         let stepMinutes   = 15
         let maxMilestones = 8   // 8 × 15 min = 2 hours
 
+        // friend.daily and foe.daily both run midnight–11:59 PM.
+        // Their intervalDidStart fires reliably at midnight each day —
+        // that's the primary path for saving the previous day's result.
         let dailySchedule = DeviceActivitySchedule(
             intervalStart: DateComponents(hour: 0, minute: 0),
             intervalEnd:   DateComponents(hour: 23, minute: 59),
-            repeats: true
-        )
-
-        // Fires intervalDidEnd at 11:58 PM every day — the sole place
-        // where yesterday's battle result is snapshotted before midnight.
-        let snapshotSchedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(hour: 0, minute: 0),
-            intervalEnd:   DateComponents(hour: 23, minute: 58),
             repeats: true
         )
 
@@ -226,8 +253,9 @@ final class AppState {
             if hasfoeSelection {
                 try center.startMonitoring(foeActivity, during: dailySchedule, events: foeEvents)
             }
-            try center.startMonitoring(snapshotActivity, during: snapshotSchedule)
             SharedStore.isMonitoring = true
+            // Stamp today so the extension knows which day's counts are live.
+            SharedStore.lastResetDate = SharedStore.todayString
         } catch {
             print("Failed to start monitoring: \(error)")
         }

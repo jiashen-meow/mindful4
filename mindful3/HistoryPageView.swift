@@ -23,6 +23,14 @@ struct HistoryPageView: View {
     // Sheet state
     @State private var selectedResult: SelectedDayResult? = nil
 
+    // Quotes
+    private let quotes: [String] = [
+        "rule #1: treat yourself like you treat your cat.",
+        "don't let perfect become the enemy of good. if you lose today, acknowledge it, and keep trying.",
+        "a few resources: reddit/nosurf, reddit/digitalminimalism",
+    ]
+    @State private var quoteIndex: Int = Int.random(in: 0..<3)
+
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     private let weekdaySymbols: [String] = {
         var cal = Calendar.current
@@ -76,13 +84,13 @@ struct HistoryPageView: View {
 
                 // ── Day grid ──────────────────────────────────────────────
                 let allResults = HistoryStore.allResults
-                let winDates   = HistoryStore.winDates(in: displayYear, month: displayMonth)
                 let cells      = buildCells()
 
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(cells, id: \.id) { cell in
-                        let hasResult = cell.day > 0 && allResults[cell.dateString] != nil
-                        dayCell(cell, isWin: winDates.contains(cell.dateString))
+                        let result    = cell.day > 0 ? allResults[cell.dateString] : nil
+                        let hasResult = result != nil
+                        dayCell(cell, result: result)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 guard hasResult else { return }
@@ -94,6 +102,8 @@ struct HistoryPageView: View {
                 .padding(.horizontal, 16)
 
                 Spacer().frame(height: 24)
+
+                
 
                 // ── Month navigation ──────────────────────────────────────
                 HStack {
@@ -124,6 +134,28 @@ struct HistoryPageView: View {
                     }
                 }
                 .padding(.horizontal, 24)
+                
+                // ── Rotating quote ────────────────────────────────────────
+                Spacer()
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.4)) {
+                        quoteIndex = (quoteIndex + 1) % quotes.count
+                    }
+                } label: {
+                    Text(quotes[quoteIndex])
+                        .appLabel
+                        .foregroundStyle(.primary)
+                        .opacity(0.6)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .animation(.easeInOut(duration: 0.4), value: quoteIndex)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
             }
             .tint(.primary)
 
@@ -143,20 +175,31 @@ struct HistoryPageView: View {
     // MARK: - Day cell
 
     @ViewBuilder
-    private func dayCell(_ cell: CalendarCell, isWin: Bool) -> some View {
+    private func dayCell(_ cell: CalendarCell, result: HistoryStore.DayResult?) -> some View {
         if cell.day == 0 {
             Color.clear.frame(height: 40)
         } else {
             ZStack {
-                if isWin {
+                switch result {
+                case .catWon:
                     Image("historyStamp")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 36, height: 36)
-                } else {
+                case .foeWon, .draw:
                     Text("\(cell.day)")
                         .appCaption
                         .foregroundStyle(.primary)
+                case .empty:
+                    Text("\(cell.day)")
+                        .appCaption
+                        .foregroundStyle(.primary)
+                        .opacity(0.5)
+                case nil:
+                    Text("\(cell.day)")
+                        .appCaption
+                        .foregroundStyle(.primary)
+                        .opacity(0.5)
                 }
             }
             .frame(height: 40)
@@ -180,25 +223,36 @@ struct HistoryPageView: View {
         let outcome: BattleOutcome
         switch dayResult {
         case .catWon:  outcome = .catWon
-        case .foeWon: outcome = .foeWon
+        case .foeWon:  outcome = .foeWon
         case .draw:    outcome = .draw
+        case .empty:   outcome = .empty
+        }
+
+        // Empty days have no time data — return zeroes and skip selections.
+        if outcome == .empty {
+            return SelectedDayResult(
+                id:            dateString,
+                outcome:       .empty,
+                friendMinutes: 0,
+                foeMinutes:    0,
+                friendTokens:  [],
+                foeTokens:     []
+            )
         }
 
         let savedMinutes    = HistoryStore.minutes(for: dateString)
         let savedSelections = HistoryStore.selections(for: dateString)
 
-        // Prefer the historically saved selection; fall back to the current
-        // live selection for duels recorded before this version.
         let friendSel = savedSelections?.friendSelection ?? state.friendSelection
-        let foeSel   = savedSelections?.foeSelection   ?? state.foeSelection
+        let foeSel    = savedSelections?.foeSelection   ?? state.foeSelection
 
         return SelectedDayResult(
             id:            dateString,
             outcome:       outcome,
             friendMinutes: savedMinutes?.friendMinutes ?? 0,
-            foeMinutes:   savedMinutes?.foeMinutes   ?? 0,
+            foeMinutes:    savedMinutes?.foeMinutes    ?? 0,
             friendTokens:  friendSel.applicationTokens,
-            foeTokens:    foeSel.applicationTokens
+            foeTokens:     foeSel.applicationTokens
         )
     }
 

@@ -17,11 +17,19 @@ enum SharedStore {
     static let suiteName = "group.jia.shen.crinkle"
 
     enum Keys {
-        static let thresholdCount    = "thresholdCount"
-        static let foeThresholdCount = "foeThresholdCount"
-        static let friendSelection   = "friendSelection"
-        static let foeSelection      = "foeSelection"
-        static let isMonitoring      = "isMonitoring"
+        static let thresholdCount     = "thresholdCount"
+        static let foeThresholdCount  = "foeThresholdCount"
+        static let friendSelection    = "friendSelection"
+        static let foeSelection       = "foeSelection"
+        static let isMonitoring       = "isMonitoring"
+        /// "yyyy-MM-dd" of the day whose counts are currently accumulating.
+        /// Written by the main app on startMonitoring / restartBattle.
+        /// Advanced to today by whichever .daily activity fires first each midnight.
+        static let lastResetDate      = "lastResetDate"
+        /// Pending counts — each .daily saves its own count here before resetting
+        /// the live count. Cleared once both are present and history is committed.
+        static let pendingFriendCount = "pendingFriendCount"
+        static let pendingFoeCount    = "pendingFoeCount"
     }
 
     // force-unwrap is safe: the suite name is a compile-time constant
@@ -62,6 +70,14 @@ enum SharedStore {
     static var isMonitoring: Bool {
         get { defaults.bool(forKey: Keys.isMonitoring) }
         set { defaults.set(newValue, forKey: Keys.isMonitoring) }
+    }
+
+    /// "yyyy-MM-dd" of the day whose counts are currently accumulating.
+    /// Written by the main app on startMonitoring / restartBattle.
+    /// Advanced to today by whichever .daily activity fires first each midnight.
+    static var lastResetDate: String {
+        get { defaults.string(forKey: Keys.lastResetDate) ?? todayString }
+        set { defaults.set(newValue, forKey: Keys.lastResetDate) }
     }
 
     static var todayString: String {

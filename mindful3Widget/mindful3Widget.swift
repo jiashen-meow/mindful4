@@ -59,19 +59,28 @@ struct MindfulProvider: TimelineProvider {
 struct mindful3WidgetEntryView: View {
     var entry: MindfulEntry
 
-    private var imageAsset: String {
-        switch entry.widgetState {
-        case .winning: return "widgetWinning"
-        case .losing:  return "widgetLosing"
-        case .draw:    return "widgetDraw"
-        }
-    }
+    @Environment(\.widgetFamily) private var widgetFamily
 
-    private var stateLabel: String {
-        switch entry.widgetState {
-        case .winning: return "Winning 🏆"
-        case .losing:  return "Losing 😤"
-        case .draw:    return "Draw 🤝"
+    private var imageAsset: String {
+        switch widgetFamily {
+        case .systemSmall:
+            switch entry.widgetState {
+            case .winning: return "widgetSmallWinning"
+            case .losing:  return "widgetSmallLosing"
+            case .draw:    return "widgetSmallDraw"
+            }
+        case .systemLarge:
+            switch entry.widgetState {
+            case .winning: return "widgetLargeWinning"
+            case .losing:  return "widgetLargeLosing"
+            case .draw:    return "widgetLargeDraw"
+            }
+        default: // .systemMedium
+            switch entry.widgetState {
+            case .winning: return "widgetMediumWinning"
+            case .losing:  return "widgetMediumLosing"
+            case .draw:    return "widgetMediumDraw"
+            }
         }
     }
 

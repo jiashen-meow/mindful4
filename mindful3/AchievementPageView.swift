@@ -4,27 +4,23 @@
 //
 //  Created by Jia Shen on 7/30/26.
 //
-//  Sticker book organized by chapters.
-//  Locked achievements show a silhouette; unlocked show the full sticker.
+//  Record book — flat grid of achievements.
+//  Locked achievements show the locked asset at low opacity with a dashed border.
+//  Unlocked achievements show the full asset with a solid white circle.
 //
 
 import SwiftUI
+import FamilyControls
 
 // MARK: - Achievement model
 
 struct Achievement: Identifiable {
-    let id: String
-    let unlockedAsset: String
-    let lockedAsset: String
-    let title: String
-    let isUnlocked: (HistoryStore.Type) -> Bool
-}
-
-struct LockedChapter: Identifiable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let placeholderCount: Int
+    let id:             String
+    let unlockedAsset:  String
+    let lockedAsset:    String
+    let title:          String
+    let subtitle:       String
+    let isUnlocked:     (HistoryStore.Type) -> Bool
 }
 
 // MARK: - AchievementPageView
@@ -33,66 +29,116 @@ struct AchievementPageView: View {
 
     @Environment(AppState.self) private var state
 
-    private let chapter1: [Achievement] = [
+    // MARK: - Achievement definitions
+
+    private var achievements: [Achievement] {[
         Achievement(
-            id: "firstWin",
+            id:            "courageous",
             unlockedAsset: "stickerFirstWin",
             lockedAsset:   "stickerFirstWinSilhouette",
-            title:         "first win",
+            title:         "Courageous",
+            subtitle:      "start a duel",
             isUnlocked: { store in
                 store.allResults.values.contains(.catWon)
+                || store.allResults.count > 0
             }
         ),
         Achievement(
-            id: "streak3",
+            id:            "streak3",
             unlockedAsset: "streak3",
             lockedAsset:   "streak3Locked",
-            title:         "3-day streak",
+            title:         "Three nights",
+            subtitle:      "Streak of 3",
             isUnlocked: { _ in
                 HistoryStore.currentWinStreak >= 3
                     || AchievementPageView.maxHistoricalStreak >= 3
             }
         ),
         Achievement(
-            id: "streak7",
+            id:            "streak7",
             unlockedAsset: "streak7",
             lockedAsset:   "streak7Locked",
-            title:         "7-day streak",
+            title:         "Seven nights",
+            subtitle:      "Streak of 7",
             isUnlocked: { _ in
                 HistoryStore.currentWinStreak >= 7
                     || AchievementPageView.maxHistoricalStreak >= 7
             }
         ),
         Achievement(
-            id: "bagDown",
+            id:            "bagBeaten",
             unlockedAsset: "stickerBagDown",
             lockedAsset:   "stickerBagDownSilhouette",
-            title:         "15 wins, bag down",
+            title:         "Bag beaten",
+            subtitle:      "15 duels won",
             isUnlocked: { store in
                 store.allResults.values.filter { $0 == .catWon }.count >= 15
             }
         ),
-    ]
+        Achievement(
+            id:            "untouched",
+            unlockedAsset: "untouched",
+            lockedAsset:   "untouchedLocked",
+            title:         "Untouched",
+            subtitle:      "Foe fed 0:00",
+            isUnlocked: { store in
+                store.allResults.keys.contains { dateStr in
+                    guard let mins = store.minutes(for: dateStr) else { return false }
+                    return mins.foeMinutes == 0
+                        && store.result(for: dateStr) == .catWon
+                }
+            }
+        ),
+        Achievement(
+            id:            "magnificent",
+            unlockedAsset: "magnificent",
+            lockedAsset:   "magnificentLocked",
+            title:         "Magnificent",
+            subtitle:      "Friend fed 2:00",
+            isUnlocked: { store in
+                store.allResults.keys.contains { dateStr in
+                    guard let mins = store.minutes(for: dateStr) else { return false }
+                    return mins.friendMinutes >= 120
+                }
+            }
+        ),
+        Achievement(
+            id:            "newNemesis",
+            unlockedAsset: "newNemesis",
+            lockedAsset:   "newNemesisLocked",
+            title:         "New nemesis",
+            subtitle:      "a 2nd foe picked",
+            isUnlocked: { store in
+                AchievementPageView.hasPickedSecondFoe(store)
+            }
+        ),
+        Achievement(
+            id:            "landslide",
+            unlockedAsset: "landslide",
+            lockedAsset:   "landslideLocked",
+            title:         "Landslide",
+            subtitle:      "win by 1h 30m",
+            isUnlocked: { store in
+                store.allResults.keys.contains { dateStr in
+                    guard let mins = store.minutes(for: dateStr),
+                          store.result(for: dateStr) == .catWon else { return false }
+                    return (mins.friendMinutes - mins.foeMinutes) >= 90
+                }
+            }
+        ),
+    ]}
 
-    private let chapter1Subtitle = "I have been crumpled, discarded, and forgotten by all who walk this earth — all, save one. She alone sees my true form. She alone knows what must be done. And I confess: I do not intend to make it easy for her."
-
-    private let chapter2: LockedChapter = LockedChapter(
-        id: "chapter2",
-        title: "chapter 2 · the spider",
-        subtitle: "I have eight eyes, and with all eight I have watched empires rise and fall in the corners of this room. I did not ask to be noticed. And yet she found me — and declared me the greatest threat this household has ever known. Perhaps she is not entirely wrong.",
-        placeholderCount: 4
-    )
-
-    // MARK: Body
+    // MARK: - Body
 
     var body: some View {
         ZStack(alignment: .topLeading) {
 
             Color.appBackground
                 .ignoresSafeArea()
-            
-            // ── Back button ───────────────────────────────────────────────
-            VStack(alignment: .leading) {
+
+            VStack(alignment: .leading, spacing: 0) {
+
+                // ── Back button ───────────────────────────────────────────
                 Button {
                     state.currentPage = .main
                 } label: {
@@ -107,134 +153,74 @@ struct AchievementPageView: View {
                     .padding(.vertical, 8)
                 }
                 .padding(.leading, 8)
-                
+
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 32) {
-                        
-                        // ── Chapter 1 ─────────────────────────────────────────
-                        chapterSection(
-                            title: "chapter 1 · the plastic bag",
-                            subtitle: chapter1Subtitle,
-                            achievements: chapter1
-                        )
-                        
-                        // ── Chapter 2 (locked) ────────────────────────────────
-                        lockedChapterSection(chapter2)
-                        
+                    VStack(alignment: .leading, spacing: 24) {
+
+                        // ── Header ────────────────────────────────────────
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("Record Book")
+                                    .appTitle
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                let unlockedCount = achievements.filter {
+                                    $0.isUnlocked(HistoryStore.self)
+                                }.count
+                                let total = achievements.count
+                                Text("\(unlockedCount) out of \(total) inked")
+                                    .appCaption
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text("I keep count. Obviously I keep count.")
+                                .appCaption
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
+
+                        // ── Achievement grid ──────────────────────────────
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ],
+                            spacing: 24
+                        ) {
+                            ForEach(achievements) { achievement in
+                                achievementCell(achievement)
+                            }
+
+                            // Coming soon placeholder
+                            comingSoonCell()
+                        }
+                        .padding(.horizontal, 24)
+
                         Spacer().frame(height: 40)
                     }
                 }
             }
-            
-            GeometryReader { geo in
-                let gradientHeight = geo.size.height * 0.1
-                let fadeColor = Color.appBackground
 
+            // ── Bottom fade ───────────────────────────────────────────────
+            GeometryReader { geo in
                 VStack(spacing: 0) {
                     Spacer()
-
-                    // Bottom fade
                     LinearGradient(
                         stops: [
-                            .init(color: fadeColor.opacity(0), location: 0),
-                            .init(color: fadeColor, location: 1)
+                            .init(color: Color.appBackground.opacity(0), location: 0),
+                            .init(color: Color.appBackground,            location: 1)
                         ],
                         startPoint: .top,
-                        endPoint: .bottom
+                        endPoint:   .bottom
                     )
-                    .frame(height: gradientHeight)
+                    .frame(height: geo.size.height * 0.1)
                 }
             }
             .ignoresSafeArea()
         }
         .tint(.primary)
-    }
-
-    // MARK: - Chapter section
-
-    @ViewBuilder
-    private func chapterSection(title: String, subtitle: String, achievements: [Achievement]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .appBody
-                    .foregroundStyle(.primary)
-
-                Rectangle()
-                    .fill(.primary.opacity(0.15))
-                    .frame(height: 1)
-
-                Text(subtitle)
-                    .appCaption
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 24)
-
-            LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 20
-            ) {
-                ForEach(achievements) { achievement in
-                    achievementCell(achievement)
-                }
-            }
-            .padding(.horizontal, 24)
-        }
-    }
-
-    // MARK: - Locked chapter section
-
-    @ViewBuilder
-    private func lockedChapterSection(_ chapter: LockedChapter) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(chapter.title)
-                    .appBody
-                    .foregroundStyle(.secondary)
-
-                Rectangle()
-                    .fill(.primary.opacity(0.10))
-                    .frame(height: 1)
-
-                Text(chapter.subtitle)
-                    .appCaption
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 24)
-
-            LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 20
-            ) {
-                ForEach(0 ..< chapter.placeholderCount, id: \.self) { _ in
-                    lockedPlaceholderCell()
-                }
-            }
-            .padding(.horizontal, 24)
-        }
-    }
-
-    // MARK: - Locked placeholder cell
-
-    @ViewBuilder
-    private func lockedPlaceholderCell() -> some View {
-        GeometryReader { geo in
-            let circleSize = geo.size.width * 0.8
-
-            VStack(spacing: geo.size.width * 0.09) {
-                Circle()
-                    .fill(Color(.systemGray4))
-                    .frame(width: circleSize, height: circleSize)
-
-                Text("???")
-                    .appCaption
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .aspectRatio(0.85, contentMode: .fit)
     }
 
     // MARK: - Achievement cell
@@ -244,10 +230,10 @@ struct AchievementPageView: View {
         let unlocked = achievement.isUnlocked(HistoryStore.self)
 
         GeometryReader { geo in
-            let circleSize  = geo.size.width * 0.8
-            let stickerSize = circleSize * 0.5
+            let circleSize  = geo.size.width * 0.82
+            let stickerSize = circleSize * 0.48
 
-            VStack(spacing: geo.size.width * 0.09) {
+            VStack(spacing: 0) {
                 ZStack {
                     Circle()
                         .fill(unlocked ? Color.white : Color.clear)
@@ -257,12 +243,9 @@ struct AchievementPageView: View {
                             if !unlocked {
                                 Circle()
                                     .strokeBorder(
-                                        style: StrokeStyle(
-                                            lineWidth: 1.5,
-                                            dash: [5, 4]
-                                        )
+                                        style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
                                     )
-                                    .foregroundStyle(.secondary.opacity(0.5))
+                                    .foregroundStyle(.secondary.opacity(0.4))
                             }
                         }
 
@@ -270,22 +253,63 @@ struct AchievementPageView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: stickerSize, height: stickerSize)
-                        .opacity(unlocked ? 1.0 : 0.35)
+                        .opacity(unlocked ? 1.0 : 0.3)
                 }
+                .padding(.bottom, 18)
+                .frame(width: circleSize, height: circleSize)
 
                 Text(achievement.title)
                     .appCaption
-                    .fontWeight(unlocked ? .bold : .regular)
+                    .fontWeight(unlocked ? .semibold : .regular)
                     .foregroundStyle(unlocked ? .primary : .secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+
+                Text(achievement.subtitle)
+                    .appCaption
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .aspectRatio(0.75, contentMode: .fit)
+    }
+
+    // MARK: - Coming soon cell
+
+    @ViewBuilder
+    private func comingSoonCell() -> some View {
+        GeometryReader { geo in
+            let circleSize = geo.size.width * 0.82
+
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(width: circleSize, height: circleSize)
+                }
+                .padding(.bottom, 18)
+                .frame(width: circleSize, height: circleSize)
+
+                Text("Coming soon")
+                    .appCaption
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Text("you'll know")
+                    .appCaption
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
         }
-        .aspectRatio(0.85, contentMode: .fit)
+        .aspectRatio(0.75, contentMode: .fit)
     }
 
-    // MARK: - Max historical streak
+    // MARK: - Helpers
 
+    /// Max consecutive cat-win streak across all of history.
     static var maxHistoricalStreak: Int {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
@@ -313,6 +337,19 @@ struct AchievementPageView: View {
             prev = date
         }
         return maxStreak
+    }
+
+    /// True if the user has ever recorded a duel with a different foe selection
+    /// than the first one saved in battleSelections.
+    static func hasPickedSecondFoe(_ store: HistoryStore.Type) -> Bool {
+        let allDates = store.allResults.keys.sorted()
+        guard allDates.count >= 2 else { return false }
+        guard let firstSel = store.selections(for: allDates[0]) else { return false }
+        return allDates.dropFirst().contains { dateStr in
+            guard let sel = store.selections(for: dateStr) else { return false }
+            return sel.foeSelection.applicationTokens != firstSel.foeSelection.applicationTokens
+                || sel.foeSelection.categoryTokens    != firstSel.foeSelection.categoryTokens
+        }
     }
 }
 

@@ -24,8 +24,11 @@ enum HistoryStore {
 
     enum DayResult: String, Codable {
         case catWon  = "win"
-        case foeWon = "loss"
+        case foeWon  = "loss"
         case draw    = "draw"
+        /// Phone was off / extension suspended — no time data exists.
+        /// Distinct from a 0:0 draw where both activities fired correctly.
+        case empty   = "empty"
     }
 
     // MARK: - Stored minutes record
@@ -95,6 +98,7 @@ enum HistoryStore {
     }
 
     /// Save a single day's result, minute totals, and app selections. Keyed by "yyyy-MM-dd".
+    /// Do not call this for empty days — use `saveEmptyResult` instead.
     static func saveResult(_ outcome: BattleOutcome, for dateString: String,
                            friendMinutes: Int, foeMinutes: Int,
                            friendSelection: FamilyActivitySelection,
@@ -102,8 +106,9 @@ enum HistoryStore {
         var currentResults = allResults
         switch outcome {
         case .catWon:  currentResults[dateString] = .catWon
-        case .foeWon: currentResults[dateString] = .foeWon
+        case .foeWon:  currentResults[dateString] = .foeWon
         case .draw:    currentResults[dateString] = .draw
+        case .empty:   break   // should never happen — use saveEmptyResult
         }
         allResults = currentResults
 
@@ -115,6 +120,17 @@ enum HistoryStore {
         currentSelections[dateString] = DaySelections(friendSelection: friendSelection,
                                                       foeSelection:   foeSelection)
         allSelections = currentSelections
+    }
+
+    /// Save an empty placeholder for a day where the extension never ran.
+    /// Only writes to `battleHistory` — no minutes or selections are recorded
+    /// because no real data exists for this day.
+    static func saveEmptyResult(for dateString: String) {
+        var currentResults = allResults
+        // Don't overwrite a real result if one already exists.
+        guard currentResults[dateString] == nil else { return }
+        currentResults[dateString] = .empty
+        allResults = currentResults
     }
 
     /// Result for a specific date string, or nil if no battle that day.
