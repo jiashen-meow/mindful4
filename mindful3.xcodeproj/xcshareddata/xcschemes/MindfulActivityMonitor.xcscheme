@@ -31,7 +31,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3AFBAF1C2E7E9911009F0990"
-               BuildableName = "mindful3.app"
+               BuildableName = "crinkle.app"
                BlueprintName = "mindful3"
                ReferencedContainer = "container:mindful3.xcodeproj">
             </BuildableReference>
@@ -66,7 +66,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3AFBAF1C2E7E9911009F0990"
-            BuildableName = "mindful3.app"
+            BuildableName = "crinkle.app"
             BlueprintName = "mindful3"
             ReferencedContainer = "container:mindful3.xcodeproj">
          </BuildableReference>
@@ -85,7 +85,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3AFBAF1C2E7E9911009F0990"
-            BuildableName = "mindful3.app"
+            BuildableName = "crinkle.app"
             BlueprintName = "mindful3"
             ReferencedContainer = "container:mindful3.xcodeproj">
          </BuildableReference>

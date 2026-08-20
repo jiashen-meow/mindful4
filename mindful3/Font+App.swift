@@ -90,7 +90,7 @@ extension Color {
     static var appBackground: Color {
         Color(uiColor: UIColor { traits in
             traits.userInterfaceStyle == .dark
-                ? UIColor(red: 0x46 / 255.0, green: 0x33 / 255.0, blue: 0x2D / 255.0, alpha: 1)
+                ? UIColor(red: 0x1C / 255.0, green: 0x14 / 255.0, blue: 0x10 / 255.0, alpha: 1)
                 : UIColor(red: 0xFA / 255.0, green: 0xF6 / 255.0, blue: 0xEE / 255.0, alpha: 1)
         })
     }

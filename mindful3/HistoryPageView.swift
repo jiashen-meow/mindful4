@@ -23,14 +23,6 @@ struct HistoryPageView: View {
     // Sheet state
     @State private var selectedResult: SelectedDayResult? = nil
 
-    // Quotes
-    private let quotes: [String] = [
-        "rule #1: treat yourself like you treat your cat.",
-        "don't let perfect become the enemy of good. if you lose today, acknowledge it, and keep trying.",
-        "a few resources: reddit/nosurf, reddit/digitalminimalism",
-    ]
-    @State private var quoteIndex: Int = Int.random(in: 0..<3)
-
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     private let weekdaySymbols: [String] = {
         var cal = Calendar.current
@@ -136,25 +128,6 @@ struct HistoryPageView: View {
                 .padding(.horizontal, 24)
                 
                 // ── Rotating quote ────────────────────────────────────────
-                Spacer()
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.4)) {
-                        quoteIndex = (quoteIndex + 1) % quotes.count
-                    }
-                } label: {
-                    Text(quotes[quoteIndex])
-                        .appLabel
-                        .foregroundStyle(.primary)
-                        .opacity(0.6)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 12)
-                        .animation(.easeInOut(duration: 0.4), value: quoteIndex)
-                }
-                .buttonStyle(.plain)
-
                 Spacer()
             }
             .tint(.primary)

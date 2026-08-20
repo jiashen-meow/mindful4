@@ -19,6 +19,7 @@ internal import ManagedSettings
 struct SelectionPageView: View {
 
     @Environment(AppState.self) private var state
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var showingFriendPicker = false
     @State private var showingfoePicker   = false
@@ -44,7 +45,7 @@ struct SelectionPageView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { showingfoePicker = true }
                     
-                    Image("backgroundVS")
+                    Image(colorScheme == .dark ? "backgroundVSDark" : "backgroundVS")
                         .resizable()
                         .scaledToFit()
                         .padding(.horizontal, 20)
@@ -77,7 +78,7 @@ struct SelectionPageView: View {
                             state.startBattle()
                         }
                     } label: {
-                        Image("buttonContinue")
+                        Image(colorScheme == .dark ? "buttonContinueDark" : "buttonContinue")
                             .resizable()
                             .scaledToFit()
                             .frame(height: 64)

@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3A2416F83036A9810022B066 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3A2416F73036A9810022B066 /* PrivacyInfo.xcprivacy */; };
+		3A2416F93036A9810022B066 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3A2416F73036A9810022B066 /* PrivacyInfo.xcprivacy */; };
+		3A2416FA3036A9810022B066 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3A2416F73036A9810022B066 /* PrivacyInfo.xcprivacy */; };
 		3A4C74603012387E00AFE58F /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A4C745F3012387E00AFE58F /* WidgetKit.framework */; };
 		3A4C74623012387E00AFE58F /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A4C74613012387E00AFE58F /* SwiftUI.framework */; };
 		3A4C746F3012388000AFE58F /* mindful3WidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3A4C745E3012387E00AFE58F /* mindful3WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -66,6 +69,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3A2416F73036A9810022B066 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		3A4C745E3012387E00AFE58F /* mindful3WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = mindful3WidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3A4C745F3012387E00AFE58F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		3A4C74613012387E00AFE58F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -210,6 +214,7 @@
 		3AFBAF142E7E9911009F0990 = {
 			isa = PBXGroup;
 			children = (
+				3A2416F73036A9810022B066 /* PrivacyInfo.xcprivacy */,
 				3A4C7474301238FA00AFE58F /* mindful3WidgetExtension.entitlements */,
 				3AFBAF1F2E7E9911009F0990 /* mindful3 */,
 				3AFBAF5D2E7E9A05009F0990 /* mindfulReportExtension */,
@@ -378,6 +383,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3A2416FA3036A9810022B066 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -385,6 +391,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3A2416F83036A9810022B066 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -392,6 +399,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3A2416F93036A9810022B066 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -710,6 +718,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = mindful3/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Crinkle;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -750,6 +759,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = mindful3/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Crinkle;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
